@@ -24,10 +24,13 @@ Usage
   python md2docx.py sample_input.txt -o result.docx   # process a file
   python md2docx.py                                    # run built-in demo
 """
+from __future__ import annotations
 
 import argparse
+import io
 import re
 import sys
+from typing import Optional
 from lxml import etree
 from docx import Document
 from docx.oxml.ns import qn
@@ -1006,6 +1009,38 @@ def process_text(doc: Document, text: str,
 # ══════════════════════════════════════════════════════════════════════════════
 #  PART 5 – CLI
 # ══════════════════════════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  PUBLIC API
+#  ──────────────────────────────────────────────
+#  convert_markdown() is the single entry-point used by the FastAPI service.
+#  It keeps all I/O in memory so the web layer never touches the filesystem.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def convert_markdown(
+    text: str,
+    font: str = "Arial",
+    base_font: str = "Times New Roman",
+) -> bytes:
+    """
+    Convert *text* (Markdown with optional Hebrew and LaTeX) to a Word .docx.
+
+    Returns the raw .docx bytes so callers can stream it directly to HTTP
+    responses without creating temporary files.
+
+    Parameters
+    ----------
+    text      : Markdown source string.
+    font      : Complex-script / Hebrew font (w:cs slot).  Default: Arial.
+    base_font : Body and heading font.  Default: Times New Roman.
+    """
+    doc = Document()
+    setup_academic_style(doc, base_font=base_font)
+    process_text(doc, text, font_name=font, base_font=base_font)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(

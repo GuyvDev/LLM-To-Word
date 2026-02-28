@@ -1,0 +1,14 @@
+# md2docx API — runtime dependencies
+# Install with:  pip install -r api/requirements.txt
+
+# Web framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# md2docx core dependencies (same as root requirements.txt)
+python-docx>=1.1.0
+lxml>=5.0.0
+latex2mathml>=3.77.0
+
+# Supabase client (optional — quota falls back to in-memory if absent)
+supabase>=2.4.0

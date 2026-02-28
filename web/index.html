@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>md2docx — Markdown to Word Converter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Nav ─────────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <span class="brand">md2docx</span>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="https://github.com/your-org/md2docx" target="_blank">GitHub</a>
+      <a class="btn-nav" href="#upgrade">Upgrade</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <h1>Markdown → Word.<br/>With Hebrew &amp; Math.</h1>
+  <p class="sub">
+    Convert Markdown containing <strong>Hebrew RTL text</strong> and
+    <strong>LaTeX equations</strong> to native Word <code>.docx</code> —
+    no LibreOffice, no images, no hassle.
+  </p>
+  <div class="badges">
+    <span class="badge">100% Python</span>
+    <span class="badge">Native OMML equations</span>
+    <span class="badge">Proper BiDi/RTL</span>
+    <span class="badge">Free tier available</span>
+  </div>
+</section>
+
+<!-- ── Converter ───────────────────────────────────────────────────────── -->
+<section class="converter" id="converter">
+  <div class="card">
+    <div class="card-header">
+      <h2>Convert now</h2>
+      <div class="quota-pill" id="quotaPill">Loading…</div>
+    </div>
+
+    <div class="drop-area" id="dropArea">
+      <span class="drop-text">Drag &amp; drop a <code>.md</code> / <code>.txt</code> file here,
+        or paste Markdown below</span>
+    </div>
+
+    <textarea
+      id="mdInput"
+      placeholder="# My Document&#10;&#10;Some **bold** text and $E = mc^2$.&#10;&#10;## שלום עולם&#10;&#10;Hebrew RTL is supported natively."
+      spellcheck="false"
+    ></textarea>
+
+    <div class="options-row">
+      <label>
+        Hebrew font
+        <select id="fontSel">
+          <option value="Arial" selected>Arial</option>
+          <option value="David">David</option>
+          <option value="Miriam">Miriam</option>
+          <option value="Frank Ruehl CLM">Frank Ruehl CLM</option>
+        </select>
+      </label>
+      <label>
+        Body font
+        <select id="baseFontSel">
+          <option value="Times New Roman" selected>Times New Roman</option>
+          <option value="Calibri">Calibri</option>
+          <option value="Arial">Arial</option>
+        </select>
+      </label>
+    </div>
+
+    <button class="btn btn-primary" id="convertBtn">⬇ Download .docx</button>
+    <div class="status" id="status"></div>
+  </div>
+</section>
+
+<!-- ── Features ────────────────────────────────────────────────────────── -->
+<section class="features" id="features">
+  <h2>Features</h2>
+  <div class="feature-grid">
+    <div class="feature"><div class="feat-icon">🔠</div><strong>Hebrew &amp; Arabic RTL</strong><p>Auto-detected; proper BiDi runs per script.</p></div>
+    <div class="feature"><div class="feat-icon">∑</div><strong>LaTeX Math → OMML</strong><p>Native Word equations, not screenshots.</p></div>
+    <div class="feature"><div class="feat-icon">📄</div><strong>Full Markdown</strong><p>Headings, tables, lists, blockquotes, code.</p></div>
+    <div class="feature"><div class="feat-icon">🔌</div><strong>API access</strong><p>POST /convert with any HTTP client. Pro tier.</p></div>
+    <div class="feature"><div class="feat-icon">🧩</div><strong>Chrome Extension</strong><p>One-click download button on GitHub &amp; HackMD.</p></div>
+    <div class="feature"><div class="feat-icon">🐍</div><strong>Open source core</strong><p>Pure Python, MIT licensed.</p></div>
+  </div>
+</section>
+
+<!-- ── Pricing ──────────────────────────────────────────────────────────── -->
+<section class="pricing" id="pricing">
+  <h2>Pricing</h2>
+  <div class="pricing-grid">
+
+    <div class="plan">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">$0<span>/mo</span></div>
+      <ul>
+        <li>5 conversions / month</li>
+        <li>Watermark in footer</li>
+        <li>Web UI only</li>
+        <li>No API access</li>
+      </ul>
+      <a class="btn btn-outline" href="#converter">Get started</a>
+    </div>
+
+    <div class="plan plan-featured">
+      <div class="plan-badge">MOST POPULAR</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">$5<span>/mo</span></div>
+      <ul>
+        <li>Unlimited conversions</li>
+        <li>No watermark</li>
+        <li>API key access</li>
+        <li>Chrome Extension</li>
+        <li>Priority support</li>
+      </ul>
+      <a class="btn btn-primary" href="https://buy.stripe.com/your-link" target="_blank" id="upgrade">
+        Upgrade to Pro
+      </a>
+    </div>
+
+    <div class="plan">
+      <div class="plan-name">Team</div>
+      <div class="plan-price">$15<span>/mo</span></div>
+      <ul>
+        <li>5 seats included</li>
+        <li>Unlimited conversions</li>
+        <li>Shared API key</li>
+        <li>Invoice billing</li>
+      </ul>
+      <a class="btn btn-outline"
+         href="mailto:hello@md2docx.app?subject=Team+plan">Contact us</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── Footer ───────────────────────────────────────────────────────────── -->
+<footer>
+  <p>
+    <strong>md2docx</strong> ·
+    <a href="https://github.com/your-org/md2docx" target="_blank">GitHub</a> ·
+    <a href="/docs" target="_blank">API Docs</a> ·
+    <a href="mailto:hello@md2docx.app">Contact</a>
+  </p>
+  <p class="copy">© 2026 md2docx. MIT licensed core.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
