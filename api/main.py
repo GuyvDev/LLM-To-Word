@@ -32,7 +32,7 @@ from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel, Field
 
 from md2docx import convert_markdown
-from api.quota import QuotaService, QuotaExceeded
+from api.quota import QuotaService, QuotaExceeded, InvalidApiKey
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -106,6 +106,11 @@ async def convert(
                 "upgrade_url": "https://md2docx.app/#upgrade",
             },
         )
+    except InvalidApiKey:
+        raise HTTPException(
+            status_code=401,
+            detail={"error": "invalid_api_key", "message": "Invalid API key."},
+        )
 
     # Run the conversion (pure Python, no disk I/O)
     try:
@@ -132,7 +137,13 @@ async def quota_status(
 ):
     """Return current quota usage for an API key / IP."""
     identity = x_api_key if x_api_key != "anonymous" else _client_ip(request)
-    info = await quota_service.get_status(identity, x_api_key)
+    try:
+        info = await quota_service.get_status(identity, x_api_key)
+    except InvalidApiKey:
+        raise HTTPException(
+            status_code=401,
+            detail={"error": "invalid_api_key", "message": "Invalid API key."},
+        )
     return {
         "used": info.used,
         "limit": info.limit,
@@ -145,8 +156,30 @@ async def quota_status(
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _client_ip(request: Request) -> str:
-    """Extract real client IP, honouring X-Forwarded-For from Railway proxy."""
+    """
+    Extract client IP with explicit proxy-trust controls.
+
+    By default we do NOT trust client-supplied X-Forwarded-For headers.
+    Enable trusted proxy mode with:
+      TRUST_PROXY_HEADERS=true
+    Optionally restrict trusted proxy source IPs:
+      TRUSTED_PROXY_IPS=10.0.0.1,10.0.0.2
+    """
+    direct_ip = request.client.host if request.client else "unknown"
     forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    if not forwarded:
+        return direct_ip
+
+    trust_proxy_headers = os.getenv("TRUST_PROXY_HEADERS", "false").lower() in {
+        "1", "true", "yes", "on"
+    }
+    if not trust_proxy_headers:
+        return direct_ip
+
+    trusted_proxy_ips = {
+        ip.strip() for ip in os.getenv("TRUSTED_PROXY_IPS", "").split(",") if ip.strip()
+    }
+    if trusted_proxy_ips and direct_ip not in trusted_proxy_ips:
+        return direct_ip
+
+    return forwarded.split(",")[0].strip()

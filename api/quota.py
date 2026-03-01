@@ -60,6 +60,10 @@ class QuotaExceeded(Exception):
     pass
 
 
+class InvalidApiKey(Exception):
+    pass
+
+
 @dataclass
 class QuotaInfo:
     used:      int
@@ -155,7 +159,7 @@ class QuotaService:
             )
             if res.data:
                 return res.data["tier"]
-        return "free"   # unknown key → treat as free account
+        raise InvalidApiKey("Invalid API key.")
 
     async def _get_count(self, key_hash: str, period: str) -> int:
         if self._db:

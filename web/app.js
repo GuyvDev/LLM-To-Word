@@ -8,7 +8,8 @@
  *  - Show upgrade CTA on 429
  */
 
-const API_BASE = "https://api.md2docx.app";   // change to http://localhost:8000 for local dev
+const API_BASE = window.__MD2DOCX_API_BASE__ || "https://md2docx.app";
+const UPGRADE_URL = "https://md2docx.app/#upgrade";
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const dropArea    = document.getElementById("dropArea");
@@ -148,7 +149,7 @@ function showUpgrade(msg) {
   banner.className = "upgrade-banner";
   banner.innerHTML = `
     <span>${msg}</span>
-    <a class="btn btn-primary" href="https://buy.stripe.com/your-link" target="_blank">
+    <a class="btn btn-primary" href="${UPGRADE_URL}" target="_blank">
       Upgrade to Pro — $5/mo
     </a>
     <button class="close-btn" onclick="this.parentElement.remove()">✕</button>

@@ -7,7 +7,7 @@
  *  3. Show upgrade CTA when quota is exhausted.
  */
 
-const API_BASE = "https://api.md2docx.app";   // swap to http://localhost:8000 for dev
+const API_BASE = "https://md2docx.app";
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const quotaBar    = document.getElementById("quotaBar");

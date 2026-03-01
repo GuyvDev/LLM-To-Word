@@ -11,7 +11,7 @@
  *  serialises the bytes as a base64 data-URL and calls chrome.downloads.
  */
 
-const API_BASE = "https://api.md2docx.app";
+const API_BASE = "https://md2docx.app";
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "CONVERT") {
