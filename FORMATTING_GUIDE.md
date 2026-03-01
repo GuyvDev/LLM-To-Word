@@ -15,6 +15,56 @@ python md2docx.py input.txt -o output.docx --font "Arial" --base-font "Times New
 
 ---
 
+## Converting to PDF
+
+The converter produces `.docx`. To get a `.pdf`, use the **Windows host** —
+Microsoft Word on the host renders fonts, math, and BiDi shaping faithfully.
+
+### Option A — PowerShell (Word COM), called from Linux / WSL
+
+Run this single PowerShell one-liner from the Linux terminal.
+Replace paths with absolute Windows paths (use the `//wsl$/…` or `/mnt/c/…`
+UNC equivalent as needed).
+
+```bash
+# From WSL / the dev VM terminal:
+powershell.exe -Command "
+  \$w = New-Object -ComObject Word.Application;
+  \$w.Visible = \$false;
+  \$d = \$w.Documents.Open('C:\\path\\to\\output.docx');
+  \$d.SaveAs([ref]'C:\\path\\to\\output.pdf', [ref]17);
+  \$d.Close();
+  \$w.Quit()
+"
+```
+
+`SaveAs` format `17` = `wdFormatPDF`.  
+Requires Microsoft Word installed on the Windows host.
+
+### Option B — `docx2pdf` Python package (Windows-side)
+
+On the **Windows** host (not inside the VM):
+
+```powershell
+pip install docx2pdf
+docx2pdf output.docx output.pdf
+```
+
+`docx2pdf` calls the same Word COM automation internally; Word must be
+installed. It does **not** work inside Linux/WSL — run it on the Windows host
+or copy the `.docx` there first.
+
+### Option C — LibreOffice headless (Linux, no Word needed)
+
+If Word is unavailable, LibreOffice produces a reasonable PDF, but Hebrew
+BiDi and native OMML equations may render differently:
+
+```bash
+soffice --headless --convert-to pdf output.docx
+```
+
+---
+
 ## Critical Spacing Rules
 
 These are the most common mistakes when writing for md2docx.

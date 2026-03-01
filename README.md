@@ -206,6 +206,34 @@ No special syntax. Hebrew and Arabic characters are auto-detected.
 
 ---
 
+## Converting the Output to PDF
+
+The tool produces a `.docx`. For PDF output, use the **Windows host** — Word
+COM automation gives pixel-perfect rendering of Hebrew BiDi and OMML equations.
+
+**From WSL / the dev VM terminal (PowerShell Word COM):**
+
+```bash
+powershell.exe -Command "
+  \$w = New-Object -ComObject Word.Application; \$w.Visible = \$false;
+  \$d = \$w.Documents.Open('C:\\full\\path\\output.docx');
+  \$d.SaveAs([ref]'C:\\full\\path\\output.pdf', [ref]17);
+  \$d.Close(); \$w.Quit()
+"
+```
+
+**On the Windows host (Python `docx2pdf`):**
+
+```powershell
+pip install docx2pdf
+docx2pdf output.docx output.pdf
+```
+
+See `FORMATTING_GUIDE.md` → *Converting to PDF* for all options including
+LibreOffice headless as a fallback.
+
+---
+
 ## How It Works
 
 ### Why not use python-docx's normal API?

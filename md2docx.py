@@ -118,7 +118,47 @@ def _rPr_set(rPr, tag: str, attrs: dict = None):
 # ══════════════════════════════════════════════════════════════════════════════
 
 _STRONG_RTL = re.compile(r"[\u0590-\u05FF\u0600-\u06FF\u200F]")  # Hebrew/Arabic + RLM
-_STRONG_LTR = re.compile(r"[A-Za-z\u200E]")                       # Latin + LRM
+_STRONG_LTR = re.compile(r"[A-Za-z0-9\u200E]")                    # Latin + digits + LRM
+# Digits are treated as LTR (not neutral).  Placing them in an LTR run
+# guarantees that "(1)", "70–90%", "T5", etc. are never given RTL run
+# properties and therefore never rendered with mirrored brackets by Word.
+_LTR_LEADING_HINT_RE = re.compile(r"[A-Za-z0-9`*_~]")
+_RTL_PREFIX_HYPHEN_RE = re.compile(r"^[-\u2010\u2011\u2012\u2013\u2014\u05BE]+$")
+
+
+def _should_flush_leading_neutrals_ltr(pending: list[str]) -> bool:
+    """
+    Return True when leading neutrals before first Hebrew should be an LTR run.
+
+    We force LTR for prefixes that look like markdown/control tokens or
+    number/Latin-led snippets, e.g. ``(1) ``, ``**``, ``T5``.
+    Pure punctuation prefixes such as ``, `` or ``. `` are kept with the
+    incoming Hebrew so punctuation placement in RTL sentences stays natural.
+    """
+    if not pending:
+        return False
+    chunk = "".join(pending)
+    if _LTR_LEADING_HINT_RE.search(chunk):
+        return True
+    return any(ch.isdigit() for ch in chunk)
+
+
+def _is_rtl_prefix_hyphen(pending: list[str]) -> bool:
+    """
+    True for hyphen-only boundary neutrals between RTL and incoming LTR text.
+
+    Example: ``ב-RVQ`` should split to ``"ב-"`` (RTL) + ``"RVQ"`` (LTR),
+    not ``"ב"`` + ``"-RVQ"``.
+    """
+    if not pending:
+        return False
+    chunk = "".join(pending)
+    return bool(_RTL_PREFIX_HYPHEN_RE.fullmatch(chunk))
+
+
+def _is_whitespace_only(pending: list[str]) -> bool:
+    """True when boundary neutrals are only spaces/tabs/newlines."""
+    return bool(pending) and all(ch.isspace() for ch in pending)
 
 
 def _split_rtl_ltr(text: str) -> list:
@@ -127,47 +167,137 @@ def _split_rtl_ltr(text: str) -> list:
 
     Rules
     -----
-    * Hebrew / Arabic codepoints → RTL (is_rtl=True)
-    * Latin letters               → LTR (is_rtl=False)
-    * Neutral chars (space, digits, punctuation) → inherit current direction.
-      At the very start of the string, leading neutrals default to LTR.
+    * Hebrew / Arabic codepoints  → RTL (is_rtl=True)
+    * Latin letters and digits    → LTR (is_rtl=False)
+      Digits are treated as LTR (not "neutral") so that patterns like
+      ``(1)``, ``70–90%``, ``T5`` are always placed in an LTR run and
+      never rendered with mirrored brackets by Word's BiDi engine.
+    * Neutral chars (spaces, punctuation excluding digits) at a direction
+      *boundary* are usually assigned to the **incoming** direction. This
+      ensures:
+        – ``(`` before a Latin word goes with the Latin run  → correct brackets
+        – ``: (1) `` after Hebrew goes with the digit-triggered LTR run
+      Exception: a Hebrew-prefix hyphen before Latin (``ב-RVQ`` / ``ה-Transformer``)
+      stays with the outgoing RTL run.
+    * Leading neutrals before the first Hebrew char are forced to LTR only when
+      they include strong LTR hints (digits/Latin/markdown markers). Punctuation-
+      only prefixes (e.g. ``, ``) stay with Hebrew.
 
-    Example
-    -------
+    Examples
+    --------
     >>> _split_rtl_ltr("התוכנה מתחילה עם main()")
-    [("התוכנה מתחילה עם ", True), ("main()", False)]
+    [("התוכנה מתחילה עם", True), (" main()", False)]
+
+    >>> _split_rtl_ltr("מקושרים: (1) נעילה")
+    [("מקושרים", True), (": (1) ", False), ("נעילה", True)]
+
+    >>> _split_rtl_ltr("נעילה (Autoregressive Lock-in)")
+    [("נעילה", True), (" (Autoregressive Lock-in)", False)]
     """
     if not text:
         return []
 
-    segments = []
-    buf: list[str] = []
-    current_rtl: bool | None = None          # None = not yet determined
+    segments: list = []
+    buf: list[str] = []          # chars committed to current_rtl direction
+    pending: list[str] = []      # neutral chars sitting at a direction boundary
+    current_rtl: Optional[bool] = None   # None = direction not yet determined
+
+    def _flush(direction: Optional[bool]) -> None:
+        """Emit buf (+ pending) as one segment if non-empty."""
+        chunk = buf + pending
+        if chunk:
+            segments.append(("".join(chunk),
+                              bool(direction) if direction is not None else False))
+        buf.clear()
+        pending.clear()
 
     for char in text:
         if _STRONG_RTL.match(char):
-            char_dir: bool | None = True
+            char_dir: Optional[bool] = True
         elif _STRONG_LTR.match(char):
             char_dir = False
         else:
-            char_dir = current_rtl           # neutral → inherit
+            char_dir = None   # genuine neutral (space, punctuation except digits)
 
-        # First strong character fixes the initial direction
-        if current_rtl is None and char_dir is not None:
+        if char_dir is None:
+            # Neutral: park in pending.  Will be assigned once the next
+            # strong character's direction is known.
+            pending.append(char)
+            continue
+
+        # ── Strong character: resolve direction ───────────────────────────────
+        if current_rtl is None:
+            # Very first strong char in the string.
+            # Pending chars are leading neutrals.  Assign them to:
+            #   • LTR  if the first strong char is RTL (so "(1) Hebrew" renders as
+            #          two runs: "(1) " LTR, "Hebrew" RTL — brackets not mirrored)
+            #   • same direction otherwise (merge with the first run)
             current_rtl = char_dir
-
-        # Still unresolved (leading neutrals before any strong char)
-        if char_dir is None or char_dir == current_rtl:
+            if pending and char_dir is True and _should_flush_leading_neutrals_ltr(pending):
+                # leading neutrals before first Hebrew → emit as LTR first
+                segments.append(("".join(pending), False))
+                pending.clear()
+            # fall through: pending (if any, now empty) already handled
+            buf.extend(pending)
+            pending.clear()
             buf.append(char)
+
+        elif char_dir == current_rtl:
+            # Same direction: the pending neutrals were between two chars of
+            # the same script, so they belong to the current run.
+            buf.extend(pending)
+            pending.clear()
+            buf.append(char)
+
         else:
-            # Direction boundary → flush buffer, start new segment
-            if buf:
-                segments.append(("".join(buf), bool(current_rtl)))
-            buf = [char]
+            # ── Direction change ──────────────────────────────────────────────
+            # The assignment of the pending neutrals depends on which way
+            # the boundary goes:
+            #
+            #   RTL → LTR  (e.g. Hebrew ending, then "(Term)")
+            #     Pending = trailing space + opening "(" before Latin.
+            #     These belong to the INCOMING LTR run so that the opening
+            #     bracket is in the same run as the Latin text it wraps.
+            #
+            #   LTR → RTL  (e.g. "(1)" ending, then Hebrew starts)
+            #     Pending = closing ")" + space after the LTR token.
+            #     These belong to the CURRENT (outgoing) LTR run so that
+            #     the closing bracket stays with the digit, not the Hebrew.
+            #
+            if current_rtl is True:
+                if _is_rtl_prefix_hyphen(pending):
+                    # Keep Hebrew prefix hyphen (e.g. "ב-") with RTL run.
+                    buf.extend(pending)
+                    if buf:
+                        segments.append(("".join(buf), True))
+                    buf = [char]
+                elif _is_whitespace_only(pending):
+                    # Keep plain word-boundary spaces with outgoing RTL text.
+                    # Putting them at the start of the incoming LTR run often
+                    # makes Word visually glue "HebrewEnglish" on wrapped lines.
+                    buf.extend(pending)
+                    if buf:
+                        segments.append(("".join(buf), True))
+                    buf = [char]
+                else:
+                    # RTL → LTR: pending goes to the new LTR run
+                    if buf:
+                        segments.append(("".join(buf), True))
+                    buf = list(pending) + [char]
+            else:
+                # LTR → RTL: pending stays with the outgoing LTR run
+                buf.extend(pending)
+                if buf:
+                    segments.append(("".join(buf), False))
+                buf = [char]
+            pending.clear()
             current_rtl = char_dir
 
+    # End of string: remaining pending neutrals stay with current direction
+    buf.extend(pending)
     if buf:
-        segments.append(("".join(buf), bool(current_rtl) if current_rtl is not None else False))
+        segments.append(("".join(buf),
+                          bool(current_rtl) if current_rtl is not None else False))
 
     return segments
 
@@ -306,6 +436,24 @@ def _set_rtl_run(run, font_name: str) -> None:
     })
     _rPr_set(rPr, "w:rtl",  {"w:val": "1"})
     _rPr_set(rPr, "w:lang", {"w:bidi": "he-IL"})
+
+
+def _set_ltr_run(run) -> None:
+    """
+    Explicitly mark *run* as left-to-right.
+
+    CRITICAL: When a paragraph has <w:bidi w:val="1"/>, any run that does NOT
+    have an explicit <w:rtl> property INHERITS RTL from the paragraph.  That
+    causes Word to mirror bracket characters — '(' renders as ')' — and apply
+    right-to-left glyph shaping to digits and ASCII punctuation.
+
+    Setting <w:rtl w:val="0"/> explicitly overrides the inherited direction,
+    guaranteeing that '(1)', '70–90%', 'Cross-Attention', etc. are always
+    rendered left-to-right with correct (un-mirrored) brackets.
+    """
+    rPr = run._r.get_or_add_rPr()
+    _rPr_set(rPr, "w:rtl",  {"w:val": "0"})
+    _rPr_set(rPr, "w:lang", {"w:val": "en-US"})  # prevent Hebrew spell-check
 
 
 def _set_rtl_para(para, font_name: str = "Arial") -> None:
@@ -677,31 +825,48 @@ def _is_rtl(text: str) -> bool:
     return bool(_RTL_RE.search(text))
 
 
+def _para_is_rtl(para) -> bool:
+    """Return True if paragraph has <w:bidi w:val='1'>."""
+    pPr = para._element.pPr
+    if pPr is None:
+        return False
+    bidi = pPr.find(qn("w:bidi"))
+    if bidi is None:
+        return False
+    val = bidi.get(qn("w:val"))
+    return val != "0"
+
+
 def _add_formatted_text(para, text: str, font_name: str,
                         bold: bool = False, italic: bool = False,
                         strike: bool = False, mono: bool = False) -> None:
     """
     Append *text* to *para* as one or more runs, respecting BiDi direction.
 
-    Character-formatting flags are applied to every run produced.
-    Each run covers one homogeneous script-direction segment so that Hebrew
-    runs receive <w:rtl/> while Latin runs do not.
+    Character-formatting flags are applied to the run.
+
+    IMPORTANT: we intentionally keep the full chunk as a *single* run and let
+    Word's native Unicode BiDi algorithm resolve mixed Hebrew+English text.
+    Per-script run splitting causes unstable line wrapping in Word for long
+    mixed-direction academic paragraphs.
     """
-    for seg_text, seg_rtl in _split_rtl_ltr(text):
-        if not seg_text:
-            continue
-        run = para.add_run(seg_text)
-        if bold:
-            run.bold = True
-        if italic:
-            run.italic = True
-        if strike:
-            run.font.strike = True
-        if mono:
-            run.font.name = "Courier New"
-            run.font.size = Pt(10)
-        if seg_rtl:
-            _set_rtl_run(run, font_name)
+    if not text:
+        return
+
+    run = para.add_run(text)
+    if bold:
+        run.bold = True
+    if italic:
+        run.italic = True
+    if strike:
+        run.font.strike = True
+    if mono:
+        run.font.name = "Courier New"
+        run.font.size = Pt(10)
+
+    # Paragraph direction is authoritative; keep run direction aligned with it.
+    if _para_is_rtl(para) or _is_rtl(text):
+        _set_rtl_run(run, font_name)
 
 
 def _process_inline_fmt(para, text: str, font_name: str,
@@ -775,6 +940,28 @@ def _process_inline(para, text: str, font_name: str) -> None:
             _add_formatted_text(para, part, font_name)
         else:
             _apply_inline_token(para, part, font_name)
+
+
+def _add_heading(doc: Document, text: str, level: int,
+                 font_name: str = "Arial") -> None:
+    """
+    Add a heading paragraph with proper BiDi / RTL support.
+
+    ``doc.add_heading()`` creates a single plain run with no BiDi properties,
+    so Hebrew headings come out centered (H1 style) or left-aligned instead of
+    right-aligned, and glyphs are drawn from the wrong font slot.
+
+    This wrapper:
+      1. Creates the empty heading paragraph (no text) via add_heading("").
+      2. Detects Hebrew and calls _set_rtl_para() to set <w:bidi/> +
+         <w:jc val="start"/> — overriding the style-level CENTER for H1.
+      3. Renders the text through _process_inline() so inline markup and
+         per-segment BiDi runs (RTL Hebrew + LTR inline code/math) are handled.
+    """
+    h_para = doc.add_heading("", level=level)
+    if _is_rtl(text):
+        _set_rtl_para(h_para, font_name)
+    _process_inline(h_para, text, font_name)
 
 
 def _add_mixed_paragraph(doc: Document, raw_line: str,
@@ -963,11 +1150,11 @@ def process_text(doc: Document, text: str,
 
         # ── Headings ──────────────────────────────────────────────────────────
         if line.startswith("### "):
-            doc.add_heading(line[4:], level=3)
+            _add_heading(doc, line[4:], level=3, font_name=font_name)
         elif line.startswith("## "):
-            doc.add_heading(line[3:], level=2)
+            _add_heading(doc, line[3:], level=2, font_name=font_name)
         elif line.startswith("# "):
-            doc.add_heading(line[2:], level=1)
+            _add_heading(doc, line[2:], level=1, font_name=font_name)
 
         # ── Block equations ───────────────────────────────────────────────────
         elif line.startswith("$$") and line.endswith("$$") and len(line) > 4:
