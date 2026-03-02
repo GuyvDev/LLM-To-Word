@@ -1,0 +1,5 @@
+1. Table in hebrew should build from the right to the lefy, for example key in the right and value on the left
+2. the content of the table in hebrew should get RTL diraction
+3. should add support for sub tittle up to 6 sub titles (######)
+4. should add for word extension on windows store for office - it should have gui for texting with any llm of the user (with api \ sign in to ChatGPT or google or claude) and the ai should get the convertion as a tool to insert and edit the word by imself (without opening new word for copy or some tricks i did for my clipboard) 
+5. the clipboard trick should be somehow deploy to users as a service - need to think how
