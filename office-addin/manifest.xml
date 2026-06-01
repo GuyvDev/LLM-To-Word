@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:type="TaskPaneApp">
+  <Id>7a0f705d-62cd-4f50-8f42-823e7f8d4883</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>md2docx</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="md2docx AI Assistant"/>
+  <Description DefaultValue="Chat with an LLM and insert/edit formatted md2docx output directly in Word."/>
+
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon48.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon128.png"/>
+  <SupportUrl DefaultValue="https://github.com/GuyvDev/LLM-To-Word"/>
+
+  <Hosts>
+    <Host Name="Document"/>
+  </Hosts>
+
+  <Requirements>
+    <Sets DefaultMinVersion="1.3">
+      <Set Name="WordApi" MinVersion="1.3"/>
+    </Sets>
+  </Requirements>
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/>
+  </DefaultSettings>
+
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <AppDomains>
+    <AppDomain>https://localhost:3000</AppDomain>
+    <AppDomain>https://md2docx.app</AppDomain>
+    <AppDomain>https://api.openai.com</AppDomain>
+    <AppDomain>https://api.anthropic.com</AppDomain>
+    <AppDomain>https://generativelanguage.googleapis.com</AppDomain>
+  </AppDomains>
+</OfficeApp>

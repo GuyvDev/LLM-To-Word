@@ -71,8 +71,8 @@ These are the most common mistakes when writing for md2docx.
 
 **Do NOT add a blank line after a heading.**
 The heading styles already include space-before (18 pt for H1, 14 pt for H2,
-12 pt for H3) and space-after (4 pt). An empty line produces an extra empty
-paragraph, creating a visible gap. Write:
+12 pt for H3, 10 pt for H4, 8 pt for H5/H6) and space-after (4 pt). An empty
+line produces an extra empty paragraph, creating a visible gap. Write:
 
 ```
 ## My Section
@@ -102,6 +102,9 @@ They render cleanly when placed directly after the preceding text.
 # Heading 1
 ## Heading 2
 ### Heading 3
+#### Heading 4
+##### Heading 5
+###### Heading 6
 ```
 
 | Level | Font size | Style                      | Alignment | Space before |
@@ -109,9 +112,11 @@ They render cleanly when placed directly after the preceding text.
 | H1    | 22 pt     | Bold, underline            | Centred   | 18 pt        |
 | H2    | 14 pt     | Bold                       | Left      | 14 pt        |
 | H3    | 12 pt     | Bold italic                | Left      | 12 pt        |
+| H4    | 11 pt     | Bold                       | Left      | 10 pt        |
+| H5    | 10 pt     | Bold                       | Left      | 8 pt         |
+| H6    | 10 pt     | Bold italic                | Left      | 8 pt         |
 
 All headings use the document base font (default: Times New Roman) in black.
-Only three levels are supported. There is no H4 or deeper.
 
 ---
 
@@ -239,7 +244,9 @@ ___
 ```
 
 - The separator row (`|---|`) identifies the header row (rendered **bold**).
-- All cell content is horizontally centred by default.
+- LTR tables keep centred cell content.
+- Hebrew/Arabic tables are rendered RTL: the first Markdown column appears on
+  the visual right and cell paragraphs get BiDi RTL direction.
 - The table itself is centred on the page.
 - Cell content supports all inline markup: `$math$`, `**bold**`, `*italic*`,
   `` `code` ``, `~~strike~~`.
@@ -324,5 +331,5 @@ Regular text with **bold**, *italic*, `code`, and ~~strikethrough~~.
 | Inline HTML tags                      | Not parsed; rendered as literal text             |
 | Images `![alt](url)`                  | Not supported                                    |
 | Links `[text](url)`                   | Not supported; rendered as literal text          |
-| `####` H4 or deeper headings          | Not supported; renders as a plain paragraph      |
+| `#######` H7 or deeper headings       | Not supported; renders as a plain paragraph      |
 | Nested block elements                 | Lists inside blockquotes, etc. are not supported |

@@ -309,7 +309,7 @@ def _split_rtl_ltr(text: str) -> list:
 #    • Times New Roman 12pt body (or caller-specified font / size)
 #    • 1.5× line spacing via WD_LINE_SPACING.ONE_POINT_FIVE
 #    • Standard academic page margins (2.54 cm all sides, 3.17 cm left)
-#    • Heading 1/2/3: black, proportional sizes, same font, 1.5× spacing
+#    • Heading 1–6: black, proportional sizes, same font, 1.5× spacing
 # ══════════════════════════════════════════════════════════════════════════════
 
 def setup_academic_style(doc: Document,
@@ -346,6 +346,9 @@ def setup_academic_style(doc: Document,
         ("Heading 1",   Pt(22), True,  False,  Pt(18)),
         ("Heading 2",   Pt(14), True,  False,  Pt(14)),
         ("Heading 3",   Pt(12), True,  True,   Pt(12)),
+        ("Heading 4",   Pt(11), True,  False,  Pt(10)),
+        ("Heading 5",   Pt(10), True,  False,  Pt(8)),
+        ("Heading 6",   Pt(10), True,  True,   Pt(8)),
     ]
     for style_name, size, bold, italic, sp_before in _heading_specs:
         try:
@@ -819,6 +822,7 @@ _INLINE_RE = re.compile(
 _UL_RE = re.compile(r"^[-*+] (.+)")            # unordered list item
 _OL_RE = re.compile(r"^\d+\. (.+)")            # ordered list item
 _HR_RE = re.compile(r"^(\-{3,}|\*{3,}|_{3,})\s*$")  # horizontal rule
+_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$")
 
 
 def _is_rtl(text: str) -> bool:
@@ -1081,6 +1085,7 @@ def _add_table(doc: Document, lines: list[str], font_name: str) -> None:
         return
 
     col_count = max(len(r) for r in all_rows)
+    is_rtl_table = any(_is_rtl(cell) for row in all_rows for cell in row)
     try:
         table = doc.add_table(rows=len(all_rows), cols=col_count,
                               style="Table Grid")
@@ -1093,16 +1098,19 @@ def _add_table(doc: Document, lines: list[str], font_name: str) -> None:
         is_header = (row_idx == 0 and header_row is not None)
         for col_idx in range(col_count):
             cell_text = cells[col_idx] if col_idx < len(cells) else ""
-            cell = word_row.cells[col_idx]
+            target_col_idx = (col_count - 1 - col_idx) if is_rtl_table else col_idx
+            cell = word_row.cells[target_col_idx]
             para = cell.paragraphs[0]
-            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if is_rtl_table:
+                _set_rtl_para(para, font_name)
+            else:
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
             # Remove the default empty run added by python-docx
             p_el = para._element
             for r_el in p_el.findall(qn("w:r")):
                 p_el.remove(r_el)
             if is_header:
-                run = para.add_run(cell_text)
-                run.bold = True
+                _process_inline_fmt(para, cell_text, font_name, bold=True)
             else:
                 _process_inline(para, cell_text, font_name)
 
@@ -1115,7 +1123,7 @@ def process_text(doc: Document, text: str,
 
     Supported markup
     ----------------
-    # / ## / ###        – Headings 1–3
+    # ... ######        – Headings 1–6
     $$…$$               – Display (block) equation on its own line
     $…$                 – Inline math embedded in text
     **…** / *…*         – Bold / italic
@@ -1149,12 +1157,11 @@ def process_text(doc: Document, text: str,
         _flush_table()
 
         # ── Headings ──────────────────────────────────────────────────────────
-        if line.startswith("### "):
-            _add_heading(doc, line[4:], level=3, font_name=font_name)
-        elif line.startswith("## "):
-            _add_heading(doc, line[3:], level=2, font_name=font_name)
-        elif line.startswith("# "):
-            _add_heading(doc, line[2:], level=1, font_name=font_name)
+        heading_match = _HEADING_RE.match(line)
+        if heading_match:
+            level = len(heading_match.group(1))
+            _add_heading(doc, heading_match.group(2).strip(),
+                         level=level, font_name=font_name)
 
         # ── Block equations ───────────────────────────────────────────────────
         elif line.startswith("$$") and line.endswith("$$") and len(line) > 4:

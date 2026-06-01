@@ -17,7 +17,7 @@ with no image rendering, no COM automation, and no LibreOffice dependency.
 | **Math** | LaTeX → MathML → OMML (native Word equations, not images) |
 | **Hebrew / Arabic RTL** | Auto-detected; `<w:bidi>`, `<w:rtl>`, `w:cs` font injected |
 | **Mixed BiDi** | Hebrew + Latin on one line — each script gets its own `<w:r>` run |
-| **Headings** | H1 (22 pt, bold, underline, centred) · H2 (14 pt bold) · H3 (12 pt bold italic) |
+| **Headings** | H1–H6 (`#` … `######`) with academic black heading styles |
 | **Inline formatting** | `**bold**` · `*italic*` · `` `code` `` · `~~strikethrough~~` |
 | **Block equations** | `$$…$$` on its own line — display centred equation |
 | **Inline equations** | `$…$` anywhere in a paragraph |
@@ -44,6 +44,26 @@ pip install -r requirements.txt
 | `latex2mathml` | LaTeX string → W3C MathML XML |
 
 Requires **Python 3.9+**.
+
+---
+
+## Word Add-in (Office)
+
+An Office Word task-pane add-in scaffold is included in
+`office-addin/`:
+
+- Chat with `OpenAI`, `Claude`, or `Gemini` (user-supplied API key).
+- Generate or edit Markdown from prompt + current Word selection.
+- Insert/replace content directly in Word via `POST /convert/base64`.
+
+See `office-addin/README.md` for sideload and publish steps.
+
+---
+
+## Clipboard Service Plan
+
+`CLIPBOARD_SERVICE_PLAN.md` describes the rollout from local clipboard COM
+automation to a managed service model built on `/convert/base64`.
 
 ---
 
@@ -136,9 +156,12 @@ python md2docx.py input.txt -o output.docx
 ### Headings
 
 ```
-# Heading 1   →  22 pt, bold, underline, centred
-## Heading 2  →  14 pt, bold, left-aligned
-### Heading 3 →  12 pt, bold italic, left-aligned
+# Heading 1      →  22 pt, bold, underline, centred
+## Heading 2     →  14 pt, bold, left-aligned
+### Heading 3    →  12 pt, bold italic, left-aligned
+#### Heading 4   →  11 pt, bold, left-aligned
+##### Heading 5  →  10 pt, bold, left-aligned
+###### Heading 6 →  10 pt, bold italic, left-aligned
 ```
 
 > **Tip:** Do not add a blank line after a heading. Heading styles already
@@ -182,7 +205,10 @@ Supported LaTeX: fractions, roots, super/subscripts, operators (`\pm`, `\cdot`,
 | **bold**  | `code`    |
 ```
 
-- Header row rendered **bold**, content centred in every cell.
+- Header row rendered **bold**.
+- LTR tables use centred cell content.
+- Hebrew/Arabic tables switch to RTL cell direction and visual column flow
+  (first Markdown column appears on the right).
 - Table centred on the page.
 - Cell content supports all inline markup.
 

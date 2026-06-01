@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>md2docx AI Assistant</title>
+  <link rel="stylesheet" href="taskpane.css" />
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>md2docx AI Assistant</h1>
+      <p>Chat with an LLM and insert formatted results directly into Word.</p>
+    </header>
+
+    <section class="card">
+      <h2>Conversion API</h2>
+      <label for="apiBase">md2docx API base URL</label>
+      <input id="apiBase" type="url" value="https://md2docx.app" />
+
+      <label for="converterApiKey">md2docx API key (optional)</label>
+      <input id="converterApiKey" type="password" autocomplete="off" />
+    </section>
+
+    <section class="card">
+      <h2>LLM Provider</h2>
+      <label for="provider">Provider</label>
+      <select id="provider">
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Claude (Anthropic)</option>
+        <option value="gemini">Google Gemini</option>
+      </select>
+
+      <label for="model">Model</label>
+      <input id="model" type="text" value="gpt-4.1-mini" />
+
+      <label for="providerApiKey">Provider API key</label>
+      <input id="providerApiKey" type="password" autocomplete="off" />
+    </section>
+
+    <section class="card">
+      <h2>Prompt</h2>
+      <label for="instruction">Instruction</label>
+      <textarea id="instruction" rows="4" placeholder="Example: Rewrite the selected paragraph as concise bullet points and keep equations intact."></textarea>
+
+      <div class="actions">
+        <button id="refreshSelection">Refresh selection</button>
+        <button id="askAi">Ask AI</button>
+        <button id="askAndApply">Ask + apply tool action</button>
+      </div>
+
+      <label for="selectionPreview">Selected text in Word</label>
+      <textarea id="selectionPreview" rows="5" readonly></textarea>
+    </section>
+
+    <section class="card">
+      <h2>Markdown Draft</h2>
+      <label for="markdownDraft">Markdown to insert</label>
+      <textarea id="markdownDraft" rows="8" placeholder="# Title\n\nYour generated markdown..."></textarea>
+
+      <div class="actions">
+        <button id="insertDraft">Insert draft</button>
+        <button id="replaceSelection">Replace selection</button>
+      </div>
+    </section>
+
+    <p id="status" class="status">Ready.</p>
+  </main>
+
+  <script src="taskpane.js"></script>
+</body>
+</html>

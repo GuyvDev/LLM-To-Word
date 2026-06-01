@@ -5,8 +5,10 @@ FastAPI service that wraps md2docx's convert_markdown() function.
 
 Endpoints
 ---------
-POST /convert   – Convert markdown text to .docx; enforces per-key quota.
-GET  /health    – Liveness probe for Railway / uptime monitors.
+POST /convert         – Convert markdown text to .docx; enforces per-key quota.
+POST /convert/base64  – Convert markdown text to base64 .docx payload.
+GET  /quota           – Current quota usage.
+GET  /health          – Liveness probe for Railway / uptime monitors.
 
 Authentication
 --------------
@@ -22,6 +24,7 @@ from __future__ import annotations
 
 import sys
 import os
+import base64
 
 # Make the repo root importable when running from inside api/
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -92,35 +95,8 @@ async def convert(
       - free account key        → 25/month
       - pro key                 → unlimited
     """
-    # Resolve identity: prefer API key, fall back to client IP
-    identity = x_api_key if x_api_key != "anonymous" else _client_ip(request)
-
-    try:
-        quota_info = await quota_service.check_and_consume(identity, x_api_key)
-    except QuotaExceeded as exc:
-        raise HTTPException(
-            status_code=429,
-            detail={
-                "error": "quota_exceeded",
-                "message": str(exc),
-                "upgrade_url": "https://md2docx.app/#upgrade",
-            },
-        )
-    except InvalidApiKey:
-        raise HTTPException(
-            status_code=401,
-            detail={"error": "invalid_api_key", "message": "Invalid API key."},
-        )
-
-    # Run the conversion (pure Python, no disk I/O)
-    try:
-        docx_bytes = convert_markdown(
-            text=req.markdown,
-            font=req.font,
-            base_font=req.base_font,
-        )
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail=f"Conversion failed: {exc}")
+    quota_info = await _check_quota(request, x_api_key)
+    docx_bytes = _convert_to_docx_bytes(req)
 
     headers = {
         "Content-Disposition": 'attachment; filename="result.docx"',
@@ -128,6 +104,34 @@ async def convert(
         "X-Quota-Limit": str(quota_info.limit),
     }
     return Response(content=docx_bytes, media_type=DOCX_MIME, headers=headers)
+
+
+@app.post("/convert/base64")
+async def convert_base64(
+    req: ConvertRequest,
+    request: Request,
+    x_api_key: str = Header(default="anonymous"),
+):
+    """
+    Convert Markdown to base64-encoded DOCX.
+
+    This is useful for Office add-ins and browser clients that need to insert
+    the DOCX directly into a Word document via ``insertFileFromBase64``.
+    """
+    quota_info = await _check_quota(request, x_api_key)
+    docx_bytes = _convert_to_docx_bytes(req)
+    return {
+        "filename": "result.docx",
+        "mime_type": DOCX_MIME,
+        "docx_base64": base64.b64encode(docx_bytes).decode("ascii"),
+        "quota": {
+            "used": quota_info.used,
+            "limit": quota_info.limit,
+            "remaining": quota_info.remaining,
+            "tier": quota_info.tier,
+            "resets_at": quota_info.resets_at,
+        },
+    }
 
 
 @app.get("/quota")
@@ -183,3 +187,36 @@ def _client_ip(request: Request) -> str:
         return direct_ip
 
     return forwarded.split(",")[0].strip()
+
+
+async def _check_quota(request: Request, x_api_key: str):
+    """Run quota checks and return quota status or raise an HTTPException."""
+    identity = x_api_key if x_api_key != "anonymous" else _client_ip(request)
+    try:
+        return await quota_service.check_and_consume(identity, x_api_key)
+    except QuotaExceeded as exc:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "quota_exceeded",
+                "message": str(exc),
+                "upgrade_url": "https://md2docx.app/#upgrade",
+            },
+        )
+    except InvalidApiKey:
+        raise HTTPException(
+            status_code=401,
+            detail={"error": "invalid_api_key", "message": "Invalid API key."},
+        )
+
+
+def _convert_to_docx_bytes(req: ConvertRequest) -> bytes:
+    """Convert markdown payload to DOCX bytes and normalize failure handling."""
+    try:
+        return convert_markdown(
+            text=req.markdown,
+            font=req.font,
+            base_font=req.base_font,
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Conversion failed: {exc}")
