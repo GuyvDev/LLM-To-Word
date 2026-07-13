@@ -61,14 +61,10 @@
 
     try {
       const markdown = extractMarkdown();
-      const apiKey   = await new Promise((res) =>
-        chrome.storage.sync.get("apiKey", (d) => res(d.apiKey ?? "anonymous"))
-      );
 
       const result = await chrome.runtime.sendMessage({
         type:   "CONVERT",
         markdown,
-        apiKey,
         filename: `${document.title || "note"}.docx`,
       });
 
@@ -76,9 +72,8 @@
         btn.textContent = "✓ Done";
         setTimeout(() => { btn.textContent = "⬇ .docx"; btn.disabled = false; }, 2500);
       } else if (result.status === 429) {
-        btn.textContent = "Quota exceeded";
-        btn.style.background = "#f59e0b";
-        setTimeout(() => { btn.textContent = "⬇ .docx"; btn.style.background = "#1e40af"; btn.disabled = false; }, 4000);
+        btn.textContent = "Try again shortly";
+        setTimeout(() => { btn.textContent = "⬇ .docx"; btn.disabled = false; }, 4000);
       } else {
         throw new Error(result.error ?? "Unknown error");
       }

@@ -2,14 +2,12 @@
 
 const STORAGE_KEYS = {
   apiBase: "md2docx_office_api_base",
-  converterApiKey: "md2docx_office_converter_api_key",
   provider: "md2docx_office_provider",
-  providerApiKey: "md2docx_office_provider_api_key",
   model: "md2docx_office_model",
 };
 
 const DEFAULT_MODELS = {
-  openai: "gpt-4.1-mini",
+  openai: "gpt-5",
   anthropic: "claude-3-5-sonnet-latest",
   gemini: "gemini-2.0-flash",
 };
@@ -36,7 +34,6 @@ Office.onReady(() => {
 function bindDom() {
   [
     "apiBase",
-    "converterApiKey",
     "provider",
     "model",
     "providerApiKey",
@@ -84,7 +81,6 @@ function wireEvents() {
 
   [
     "apiBase",
-    "converterApiKey",
     "provider",
     "model",
     "providerApiKey",
@@ -95,7 +91,6 @@ function wireEvents() {
 
 function loadState() {
   els.apiBase.value = localStorage.getItem(STORAGE_KEYS.apiBase) || "https://md2docx.app";
-  els.converterApiKey.value = localStorage.getItem(STORAGE_KEYS.converterApiKey) || "";
 
   const provider = localStorage.getItem(STORAGE_KEYS.provider) || "openai";
   els.provider.value = provider;
@@ -105,15 +100,14 @@ function loadState() {
     DEFAULT_MODELS[provider] ||
     "";
 
-  els.providerApiKey.value = localStorage.getItem(STORAGE_KEYS.providerApiKey) || "";
+  // Provider credentials are intentionally session-only.
+  els.providerApiKey.value = "";
 }
 
 function persistState() {
   localStorage.setItem(STORAGE_KEYS.apiBase, els.apiBase.value.trim());
-  localStorage.setItem(STORAGE_KEYS.converterApiKey, els.converterApiKey.value.trim());
   localStorage.setItem(STORAGE_KEYS.provider, els.provider.value);
   localStorage.setItem(STORAGE_KEYS.model, els.model.value.trim());
-  localStorage.setItem(STORAGE_KEYS.providerApiKey, els.providerApiKey.value.trim());
 }
 
 async function refreshSelection() {
@@ -243,13 +237,7 @@ async function insertMarkdown(markdown, replaceSelection) {
     throw new Error("md2docx API base URL is required.");
   }
 
-  const converterApiKey = els.converterApiKey.value.trim();
-  const headers = {
-    "Content-Type": "application/json",
-  };
-  if (converterApiKey) {
-    headers["X-Api-Key"] = converterApiKey;
-  }
+  const headers = { "Content-Type": "application/json" };
 
   const res = await fetch(`${apiBase}/convert/base64`, {
     method: "POST",
@@ -296,25 +284,22 @@ async function callProvider({ provider, apiKey, model, prompt }) {
 }
 
 async function callOpenAI(apiKey, model, prompt) {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  // The Responses API is the current OpenAI text-generation interface.
+  const res = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      messages: [{ role: "user", content: prompt }],
-    }),
+    body: JSON.stringify({ model, input: prompt }),
   });
-
   const payload = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(payload?.error?.message || "OpenAI request failed.");
-  }
-
-  return payload?.choices?.[0]?.message?.content || "";
+  if (!res.ok) throw new Error(payload?.error?.message || "OpenAI request failed.");
+  if (typeof payload.output_text === "string") return payload.output_text;
+  return (payload.output || []).flatMap((item) => item.content || [])
+    .filter((part) => part.type === "output_text")
+    .map((part) => part.text || "")
+    .join("\n").trim();
 }
 
 async function callAnthropic(apiKey, model, prompt) {

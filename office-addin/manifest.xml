@@ -8,10 +8,10 @@
   <ProviderName>md2docx</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="md2docx AI Assistant"/>
-  <Description DefaultValue="Chat with an LLM and insert/edit formatted md2docx output directly in Word."/>
+  <Description DefaultValue="Use your own AI-provider API key to generate Markdown and insert formatted Word output."/>
 
-  <IconUrl DefaultValue="https://localhost:3000/assets/icon48.png"/>
-  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon128.png"/>
+  <IconUrl DefaultValue="https://md2docx.app/addin/assets/icon48.png"/>
+  <HighResolutionIconUrl DefaultValue="https://md2docx.app/addin/assets/icon128.png"/>
   <SupportUrl DefaultValue="https://github.com/GuyvDev/LLM-To-Word"/>
 
   <Hosts>
@@ -25,13 +25,12 @@
   </Requirements>
 
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/>
+    <SourceLocation DefaultValue="https://md2docx.app/addin/taskpane.html"/>
   </DefaultSettings>
 
   <Permissions>ReadWriteDocument</Permissions>
 
   <AppDomains>
-    <AppDomain>https://localhost:3000</AppDomain>
     <AppDomain>https://md2docx.app</AppDomain>
     <AppDomain>https://api.openai.com</AppDomain>
     <AppDomain>https://api.anthropic.com</AppDomain>

@@ -43,27 +43,19 @@ pip install -r requirements.txt
 | `lxml` | Low-level XML for injecting OMML math and BiDi properties |
 | `latex2mathml` | LaTeX string → W3C MathML XML |
 
-Requires **Python 3.9+**.
+Requires **Python 3.12+** for the supported container runtime.
 
 ---
 
-## Word Add-in (Office)
+## Word Add-in (Office) — optional beta
 
-An Office Word task-pane add-in scaffold is included in
-`office-addin/`:
+The optional Word task-pane add-in can use a user's own OpenAI, Anthropic, or Gemini API key to generate Markdown, then converts and inserts it directly into Word. The md2docx conversion API itself requires no account or API key. See `office-addin/README.md` for BYOK and OAuth-broker guidance.
 
-- Chat with `OpenAI`, `Claude`, or `Gemini` (user-supplied API key).
-- Generate or edit Markdown from prompt + current Word selection.
-- Insert/replace content directly in Word via `POST /convert/base64`.
-
-See `office-addin/README.md` for sideload and publish steps.
-
----
+See `office-addin/README.md` for deployment and validation steps.
 
 ## Clipboard Service Plan
 
-`CLIPBOARD_SERVICE_PLAN.md` describes the rollout from local clipboard COM
-automation to a managed service model built on `/convert/base64`.
+`CLIPBOARD_SERVICE_PLAN.md` describes the optional local clipboard helper and the `/convert/base64` Word-integration path.
 
 ---
 
@@ -314,10 +306,13 @@ Hebrew text detected (_is_rtl)
 
 ```
 md2docx.py          Main script and library
+api/                Stateless FastAPI service
+web/                Browser client
+extension/          Chrome extension
+office-addin/       Optional Word add-in
+tests/              Automated regression tests
 requirements.txt    Python dependencies
 sample_input.txt    Example input file demonstrating all features
-FORMATTING_GUIDE.md Detailed formatting reference for AI assistants and writers
-README.md           This file
 ```
 
 ---
@@ -333,3 +328,21 @@ MIT
 Bug reports and pull requests welcome. When reporting a rendering issue, please
 include the minimal `.txt` input that reproduces the problem and a description
 of the expected vs. actual Word output.
+
+
+## Open-source and self-hosting
+
+md2docx is MIT licensed. The core converter and conversion API have no login, payment, conversion API-key, quota-database, watermark, or telemetry requirement. The optional Office AI feature uses a provider credential supplied by the user. Run it locally as a CLI/library, or deploy the included stateless API:
+
+```bash
+docker build -t md2docx .
+docker run --rm -p 8000:8000 md2docx
+
+# Convert through the API
+curl -X POST http://localhost:8000/convert \
+  -H "Content-Type: application/json" \
+  -d '{"markdown":"# Hello"}' \
+  --output result.docx
+```
+
+The API exposes `POST /convert`, `POST /convert/base64`, and `GET /health`. For the Chrome extension, set `extension/config.js` to your HTTPS API origin and align `host_permissions` in `extension/manifest.json`. See [DEPLOYMENT.md](DEPLOYMENT.md), [PRIVACY.md](PRIVACY.md), and [ROADMAP.md](ROADMAP.md).

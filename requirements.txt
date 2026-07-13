@@ -1,19 +1,4 @@
-# md2docx – Python dependencies
-#
-# python-docx   Document container; creates .docx, adds paragraphs/headings/runs.
-#               We intentionally bypass its high-level API for RTL and math
-#               by accessing the underlying lxml element tree via ._element.
-#
-# lxml          Low-level XML element creation used for:
-#                 • Building OMML <m:oMath> trees (equations)
-#                 • Appending <w:bidi>, <w:rtl>, <w:rFonts> into pPr/rPr
-#               The etree.QName helper lets us strip namespace prefixes
-#               when pattern-matching MathML tag names in _convert_node().
-#
-# latex2mathml  Pure-Python LaTeX → W3C MathML converter.
-#               convert(latex_str) returns an XML string with a <math> root.
-#               We then feed that string into our own MathML→OMML converter.
-
-python-docx>=1.1.0
-lxml>=5.0.0
-latex2mathml>=3.77.0
+# Reproducible core runtime dependencies for Python 3.12.
+python-docx==1.2.0
+lxml==6.1.1
+latex2mathml==3.81.0

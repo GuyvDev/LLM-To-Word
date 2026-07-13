@@ -89,14 +89,6 @@ nav {
 }
 .card-header h2 { font-size: 18px; font-weight: 700; }
 
-.quota-pill {
-  font-size: 12px; font-weight: 600;
-  padding: 4px 12px; border-radius: 99px;
-  background: var(--blue-bg); color: var(--blue);
-}
-.quota-pill.pro       { background: #d1fae5; color: #065f46; }
-.quota-pill.exhausted { background: #fee2e2; color: #dc2626; }
-
 .drop-area {
   border: 2px dashed var(--border); border-radius: var(--radius);
   padding: 16px; text-align: center;
@@ -157,65 +149,6 @@ select:focus { border-color: var(--blue); }
 .status.success { color: #059669; }
 .status.info    { color: var(--blue); }
 
-/* ── Upgrade banner ───────────────────────────────────────────────────────── */
-.upgrade-banner {
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  background: #fffbeb; border: 1px solid #fcd34d;
-  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px;
-  font-size: 13px; color: #78350f;
-}
-.upgrade-banner .btn-primary { width: auto; padding: 7px 16px; font-size: 13px; }
-.close-btn {
-  margin-left: auto; background: none; border: none;
-  cursor: pointer; color: var(--muted); font-size: 16px;
-}
-
-/* ── Features ─────────────────────────────────────────────────────────────── */
-.features {
-  max-width: 960px; margin: 0 auto; padding: 60px 24px;
-  text-align: center;
-}
-.features h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 36px; }
-.feature-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-}
-.feature {
-  background: #fff; border: 1px solid var(--border);
-  border-radius: 10px; padding: 22px; text-align: left;
-}
-.feat-icon { font-size: 28px; margin-bottom: 10px; }
-.feature strong { display: block; margin-bottom: 6px; }
-.feature p { font-size: 13px; color: var(--muted); }
-
-/* ── Pricing ──────────────────────────────────────────────────────────────── */
-.pricing {
-  background: var(--blue-bg); padding: 64px 24px; text-align: center;
-}
-.pricing h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 36px; }
-.pricing-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px; max-width: 800px; margin: 0 auto;
-}
-.plan {
-  background: #fff; border: 1px solid var(--border);
-  border-radius: 12px; padding: 28px; position: relative;
-  display: flex; flex-direction: column; gap: 14px;
-}
-.plan-featured { border-color: var(--blue); box-shadow: 0 4px 20px #1e40af22; }
-.plan-badge {
-  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-  background: var(--blue); color: #fff; font-size: 10px; font-weight: 800;
-  letter-spacing: 1px; padding: 3px 12px; border-radius: 99px;
-}
-.plan-name  { font-size: 18px; font-weight: 800; }
-.plan-price { font-size: 2.2rem; font-weight: 800; color: var(--blue); }
-.plan-price span { font-size: 14px; color: var(--muted); font-weight: 500; }
-.plan ul { list-style: none; text-align: left; display: flex; flex-direction: column; gap: 6px; }
-.plan ul li { font-size: 13px; padding-left: 16px; position: relative; }
-.plan ul li::before { content: "✓"; position: absolute; left: 0; color: #059669; font-weight: 700; }
-.plan .btn { margin-top: auto; }
-
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 footer {
   text-align: center; padding: 32px 24px;
@@ -223,3 +156,7 @@ footer {
 }
 footer p + p { margin-top: 6px; }
 .copy { font-size: 11px; }
+
+.status-note { color: #51606f; font-size: .85rem; }
+.self-host { text-align:center; padding: 64px 24px; background:#f5f8fc; }
+.self-host p { max-width: 620px; margin: 0 auto 22px; color:#51606f; }

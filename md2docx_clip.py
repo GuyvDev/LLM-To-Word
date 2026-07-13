@@ -82,12 +82,14 @@ def main() -> None:
         print(f"Read {len(text)} characters from clipboard.")
 
     # ── Write to temp input file ─────────────────────────────────────────────
-    tmp_in  = tempfile.mktemp(suffix=".txt")
-    tmp_out = tmp_in.replace(".txt", ".docx")
-
+    tmp_in = None
+    tmp_out = None
     try:
-        with open(tmp_in, "w", encoding="utf-8") as f:
+        # NamedTemporaryFile reserves the path atomically; mktemp() is unsafe.
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", encoding="utf-8", delete=False) as f:
+            tmp_in = f.name
             f.write(text)
+        tmp_out = tmp_in.removesuffix(".txt") + ".docx"
 
         # ── Convert via md2docx ──────────────────────────────────────────────
         print("Converting to .docx ...")
@@ -109,9 +111,11 @@ def main() -> None:
         traceback.print_exc()
         sys.exit(1)
     finally:
-        for f in (tmp_in, tmp_out):
+        for path in (tmp_in, tmp_out):
+            if not path:
+                continue
             try:
-                os.unlink(f)
+                os.unlink(path)
             except OSError:
                 pass
 

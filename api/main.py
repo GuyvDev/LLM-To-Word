@@ -1,222 +1,153 @@
-"""
-api/main.py
-===========
-FastAPI service that wraps md2docx's convert_markdown() function.
-
-Endpoints
----------
-POST /convert         – Convert markdown text to .docx; enforces per-key quota.
-POST /convert/base64  – Convert markdown text to base64 .docx payload.
-GET  /quota           – Current quota usage.
-GET  /health          – Liveness probe for Railway / uptime monitors.
-
-Authentication
---------------
-Clients pass an optional  X-Api-Key  header.
-  • Omitted / "anonymous" → IP-based free tier (5 conversions / month).
-  • Free account key      → 25 conversions / month.
-  • Pro key               → unlimited.
-
-Quota logic lives in quota.py (Supabase-backed).
-"""
-
+"""Public, stateless HTTP API for md2docx."""
 from __future__ import annotations
 
-import sys
-import os
+import asyncio
 import base64
+import logging
+import os
+import time
+from collections import defaultdict, deque
+from uuid import uuid4
 
-# Make the repo root importable when running from inside api/
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from md2docx import convert_markdown
-from api.quota import QuotaService, QuotaExceeded, InvalidApiKey
 
-# ── App setup ─────────────────────────────────────────────────────────────────
+LOGGER = logging.getLogger("md2docx.api")
+MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", "262144"))
+MAX_MARKDOWN_CHARS = int(os.getenv("MAX_MARKDOWN_CHARS", "200000"))
+MAX_CONCURRENT_CONVERSIONS = int(os.getenv("MAX_CONCURRENT_CONVERSIONS", "4"))
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "30"))
+CONVERSION_SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT_CONVERSIONS)
+
+
+class BurstLimiter:
+    """In-memory abuse guard for a public, stateless endpoint.
+
+    It retains an IP only for the rolling one-minute window. Deployments that
+    need multi-instance protection should put a reverse-proxy rate limit ahead
+    of this application.
+    """
+    def __init__(self) -> None:
+        self._hits: dict[str, deque[float]] = defaultdict(deque)
+
+    def allow(self, identity: str) -> bool:
+        now = time.monotonic()
+        hits = self._hits[identity]
+        while hits and hits[0] <= now - 60:
+            hits.popleft()
+        if len(hits) >= RATE_LIMIT_PER_MINUTE:
+            return False
+        hits.append(now)
+        return True
+
+
+BURST_LIMITER = BurstLimiter()
+
+
+def _origins() -> list[str]:
+    raw = os.getenv("CORS_ORIGINS", "*")
+    return [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+
 
 app = FastAPI(
     title="md2docx API",
-    description=(
-        "Convert Markdown (with Hebrew RTL and LaTeX math) to native Word .docx. "
-        "Free tier: 5 conversions/month. Pro: unlimited."
-    ),
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    description="Stateless Markdown to native Word DOCX conversion.",
+    version=os.getenv("RELEASE_VERSION", "1.0.0"),
+    docs_url="/docs" if os.getenv("ENABLE_DOCS", "false").lower() == "true" else None,
+    redoc_url=None,
+    openapi_url="/openapi.json" if os.getenv("ENABLE_DOCS", "false").lower() == "true" else None,
 )
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # extension and web UI use CORS
-    allow_methods=["POST", "GET", "OPTIONS"],
-    allow_headers=["*"],
+    allow_origins=_origins(),
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Request-Id"],
+    expose_headers=["X-Request-Id"],
+    allow_credentials=False,
 )
 
-quota_service = QuotaService()
-
-# ── Request / response models ─────────────────────────────────────────────────
 
 class ConvertRequest(BaseModel):
-    markdown: str = Field(..., description="Markdown source text to convert.")
-    font: str = Field("Arial", description="Complex-script (Hebrew) font name.")
-    base_font: str = Field("Times New Roman", description="Body and heading font name.")
+    markdown: str = Field(..., min_length=1, max_length=MAX_MARKDOWN_CHARS)
+    font: str = Field("Arial", min_length=1, max_length=80)
+    base_font: str = Field("Times New Roman", min_length=1, max_length=80)
 
 
-DOCX_MIME = (
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-)
+DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@app.middleware("http")
+async def protect_request(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or str(uuid4())
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            declared_size = int(content_length)
+        except ValueError:
+            return JSONResponse({"detail": "Invalid Content-Length header."}, status_code=400)
+        if declared_size > MAX_REQUEST_BYTES:
+            return JSONResponse({"detail": "Request body is too large."}, status_code=413)
+    if request.method == "POST":
+        body = await request.body()
+        if len(body) > MAX_REQUEST_BYTES:
+            return JSONResponse({"detail": "Request body is too large."}, status_code=413)
+        if not BURST_LIMITER.allow(_client_ip(request)):
+            return JSONResponse({"detail": "Too many requests. Try again shortly."}, status_code=429)
+    try:
+        response = await call_next(request)
+    except Exception:
+        LOGGER.exception("Unhandled error request_id=%s path=%s", request_id, request.url.path)
+        return JSONResponse({"detail": "Internal server error."}, status_code=500)
+    response.headers["X-Request-Id"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
 
 @app.get("/health")
 async def health():
-    """Liveness probe — returns 200 + build info."""
-    return {"status": "ok", "service": "md2docx-api", "version": "1.0.0"}
+    return {"status": "ok", "service": "md2docx-api", "version": app.version}
 
 
 @app.post("/convert")
-async def convert(
-    req: ConvertRequest,
-    request: Request,
-    x_api_key: str = Header(default="anonymous"),
-):
-    """
-    Convert Markdown to DOCX.
-
-    Returns the binary .docx file with Content-Disposition: attachment.
-
-    Quota enforcement:
-      - anonymous / missing key → 5/month per IP
-      - free account key        → 25/month
-      - pro key                 → unlimited
-    """
-    quota_info = await _check_quota(request, x_api_key)
-    docx_bytes = _convert_to_docx_bytes(req)
-
-    headers = {
-        "Content-Disposition": 'attachment; filename="result.docx"',
-        "X-Quota-Remaining": str(quota_info.remaining),
-        "X-Quota-Limit": str(quota_info.limit),
-    }
-    return Response(content=docx_bytes, media_type=DOCX_MIME, headers=headers)
+async def convert(req: ConvertRequest):
+    docx_bytes = await _convert_to_docx_bytes(req)
+    return Response(
+        content=docx_bytes,
+        media_type=DOCX_MIME,
+        headers={"Content-Disposition": 'attachment; filename="result.docx"'},
+    )
 
 
 @app.post("/convert/base64")
-async def convert_base64(
-    req: ConvertRequest,
-    request: Request,
-    x_api_key: str = Header(default="anonymous"),
-):
-    """
-    Convert Markdown to base64-encoded DOCX.
-
-    This is useful for Office add-ins and browser clients that need to insert
-    the DOCX directly into a Word document via ``insertFileFromBase64``.
-    """
-    quota_info = await _check_quota(request, x_api_key)
-    docx_bytes = _convert_to_docx_bytes(req)
+async def convert_base64(req: ConvertRequest):
+    docx_bytes = await _convert_to_docx_bytes(req)
     return {
         "filename": "result.docx",
         "mime_type": DOCX_MIME,
         "docx_base64": base64.b64encode(docx_bytes).decode("ascii"),
-        "quota": {
-            "used": quota_info.used,
-            "limit": quota_info.limit,
-            "remaining": quota_info.remaining,
-            "tier": quota_info.tier,
-            "resets_at": quota_info.resets_at,
-        },
     }
 
-
-@app.get("/quota")
-async def quota_status(
-    request: Request,
-    x_api_key: str = Header(default="anonymous"),
-):
-    """Return current quota usage for an API key / IP."""
-    identity = x_api_key if x_api_key != "anonymous" else _client_ip(request)
-    try:
-        info = await quota_service.get_status(identity, x_api_key)
-    except InvalidApiKey:
-        raise HTTPException(
-            status_code=401,
-            detail={"error": "invalid_api_key", "message": "Invalid API key."},
-        )
-    return {
-        "used": info.used,
-        "limit": info.limit,
-        "remaining": info.remaining,
-        "tier": info.tier,
-        "resets_at": info.resets_at,
-    }
-
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _client_ip(request: Request) -> str:
-    """
-    Extract client IP with explicit proxy-trust controls.
-
-    By default we do NOT trust client-supplied X-Forwarded-For headers.
-    Enable trusted proxy mode with:
-      TRUST_PROXY_HEADERS=true
-    Optionally restrict trusted proxy source IPs:
-      TRUSTED_PROXY_IPS=10.0.0.1,10.0.0.2
-    """
     direct_ip = request.client.host if request.client else "unknown"
-    forwarded = request.headers.get("x-forwarded-for")
-    if not forwarded:
+    if os.getenv("TRUST_PROXY_HEADERS", "false").lower() not in {"1", "true", "yes", "on"}:
         return direct_ip
-
-    trust_proxy_headers = os.getenv("TRUST_PROXY_HEADERS", "false").lower() in {
-        "1", "true", "yes", "on"
-    }
-    if not trust_proxy_headers:
+    trusted = {ip.strip() for ip in os.getenv("TRUSTED_PROXY_IPS", "").split(",") if ip.strip()}
+    if direct_ip not in trusted:
         return direct_ip
-
-    trusted_proxy_ips = {
-        ip.strip() for ip in os.getenv("TRUSTED_PROXY_IPS", "").split(",") if ip.strip()
-    }
-    if trusted_proxy_ips and direct_ip not in trusted_proxy_ips:
-        return direct_ip
-
-    return forwarded.split(",")[0].strip()
+    return (request.headers.get("x-forwarded-for") or direct_ip).split(",")[0].strip()
 
 
-async def _check_quota(request: Request, x_api_key: str):
-    """Run quota checks and return quota status or raise an HTTPException."""
-    identity = x_api_key if x_api_key != "anonymous" else _client_ip(request)
+async def _convert_to_docx_bytes(req: ConvertRequest) -> bytes:
     try:
-        return await quota_service.check_and_consume(identity, x_api_key)
-    except QuotaExceeded as exc:
-        raise HTTPException(
-            status_code=429,
-            detail={
-                "error": "quota_exceeded",
-                "message": str(exc),
-                "upgrade_url": "https://md2docx.app/#upgrade",
-            },
-        )
-    except InvalidApiKey:
-        raise HTTPException(
-            status_code=401,
-            detail={"error": "invalid_api_key", "message": "Invalid API key."},
-        )
-
-
-def _convert_to_docx_bytes(req: ConvertRequest) -> bytes:
-    """Convert markdown payload to DOCX bytes and normalize failure handling."""
-    try:
-        return convert_markdown(
-            text=req.markdown,
-            font=req.font,
-            base_font=req.base_font,
-        )
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail=f"Conversion failed: {exc}")
+        async with CONVERSION_SEMAPHORE:
+            return await asyncio.to_thread(convert_markdown, req.markdown, req.font, req.base_font)
+    except Exception:
+        LOGGER.exception("Conversion failed")
+        raise HTTPException(status_code=422, detail="Markdown conversion failed.")

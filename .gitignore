@@ -17,3 +17,9 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local review artifacts and unpublished working material
+_debug_pdf_pages/
+audit-output/
+result.docx
+result.pdf

@@ -1,0 +1,10 @@
+.git
+.github
+.env
+__pycache__/
+*.py[cod]
+tests/
+_debug_pdf_pages/
+audit-output/
+result.docx
+result.pdf

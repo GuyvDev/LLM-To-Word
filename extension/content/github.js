@@ -72,11 +72,6 @@
       const rawRes  = await fetch(rawUrl);
       const markdown = await rawRes.text();
 
-      // Get API key from storage
-      const apiKey = await new Promise((res) =>
-        chrome.storage.sync.get("apiKey", (d) => res(d.apiKey ?? "anonymous"))
-      );
-
       // Derive filename from current page title or path
       const parts   = location.pathname.split("/");
       const rawName = parts[parts.length - 1]?.replace(/\.(md|txt|markdown)$/i, "") ?? "document";
@@ -86,7 +81,6 @@
       const result = await chrome.runtime.sendMessage({
         type: "CONVERT",
         markdown,
-        apiKey,
         filename,
       });
 
@@ -97,14 +91,8 @@
           btn.disabled    = false;
         }, 2500);
       } else if (result.status === 429) {
-        btn.textContent = "Quota exceeded";
-        btn.style.background = "#f59e0b";
-        btn.title = result.error ?? "Upgrade to Pro for unlimited conversions.";
-        setTimeout(() => {
-          btn.textContent = "⬇ Download .docx";
-          btn.style.background = "#1e40af";
-          btn.disabled = false;
-        }, 4000);
+        btn.textContent = "Try again shortly";
+        setTimeout(() => { btn.textContent = "⬇ Download .docx"; btn.disabled = false; }, 4000);
       } else {
         throw new Error(result.error ?? "Conversion failed");
       }

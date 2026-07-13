@@ -12,7 +12,8 @@ COPY requirements.txt         ./requirements.txt
 COPY api/requirements.txt     ./api/requirements.txt
 
 # Install all deps in one layer
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN pip install --no-cache-dir --upgrade pip==26.1.2 \
+    && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir -r api/requirements.txt
 
 # Copy source
@@ -23,6 +24,9 @@ COPY api/         ./api/
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000
+
+RUN useradd --create-home --uid 10001 appuser
+USER appuser
 
 EXPOSE 8000
 

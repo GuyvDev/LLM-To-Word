@@ -11,7 +11,8 @@
  *  serialises the bytes as a base64 data-URL and calls chrome.downloads.
  */
 
-const API_BASE = "https://md2docx.app";
+importScripts("config.js");
+const API_BASE = self.MD2DOCX_API_BASE || "https://md2docx.app";
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "CONVERT") {
@@ -20,13 +21,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 });
 
-async function handleConvert({ markdown, apiKey = "anonymous", filename = "result.docx" }) {
-  const headers = {
-    "Content-Type": "application/json",
-  };
-  if (apiKey && apiKey !== "anonymous") {
-    headers["X-Api-Key"] = apiKey;
-  }
+async function handleConvert({ markdown, filename = "result.docx" }) {
+  const headers = { "Content-Type": "application/json" };
 
   let response;
   try {
