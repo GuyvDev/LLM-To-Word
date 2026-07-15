@@ -1,12 +1,25 @@
-# Clipboard and Word Integration Plan
+# Clipboard and Word Integration
 
-The local `md2docx_clip.py` helper converts clipboard Markdown to a DOCX and uses Word COM for the final paste. It remains a Windows-only optional convenience tool.
+The Windows clipboard helper is local-only. It reads clipboard Markdown, converts it with the installed Python converter, asks Microsoft Word to materialize native rich clipboard formats, and leaves the result ready for `Ctrl+V`.
 
-For a managed or self-hosted alternative, use the public `POST /convert/base64` endpoint from the Word add-in. It returns a DOCX payload suitable for `insertFileFromBase64`.
+## One-command installation
 
-## Operational guidance
+Requirements: Windows, Microsoft Word desktop, Python 3.12 or newer, and internet access during installation for Python packages.
 
-- Keep conversion stateless: do not persist request bodies or generated files.
-- Apply request-size, concurrency, and reverse-proxy rate limits to public deployments.
-- Sign desktop releases and document the Windows/Word prerequisites.
-- Prefer the Word add-in for in-document editing; no account or payment system is required.
+From an extracted release folder, run:
+
+```powershell
+PowerShell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+The installer copies the runtime to `%LOCALAPPDATA%\Programs\md2docx`, creates a private Python environment with pinned dependencies, verifies its imports, and creates a Start Menu shortcut with the global `Ctrl+Alt+M` hotkey. It is safe to rerun for repair or upgrade. Shortcut-launched errors appear in a Windows dialog.
+
+Usage: copy Markdown, press `Ctrl+Alt+M`, then paste into Word. Choose another hotkey with `-Hotkey "CTRL+ALT+W"`.
+
+Uninstall with:
+
+```powershell
+PowerShell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\Programs\md2docx\install.ps1" -Uninstall
+```
+
+The helper and installer do not use an API, Docker, an account, or a hosted service. Microsoft Word is required because it creates the native clipboard representation.

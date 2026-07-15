@@ -1,395 +1,102 @@
-/* global Office, Word */
+/* global Office, Word, Md2Docx */
+const STORAGE_KEYS = { provider: "md2docx_provider", model: "md2docx_model" };
+const DEFAULT_MODELS = { openai: "gpt-5", anthropic: "claude-sonnet-4-5", gemini: "gemini-2.5-flash" };
+const FORMAT_SYSTEM_PROMPT = `You are an expert Microsoft Word writing copilot.
+Return exactly one JSON object: {"action":"insert_markdown|replace_selection|reply","markdown":"...","reply":"..."}.
+Use reply only for conversational answers or necessary clarification. For document content, produce clean Markdown in markdown.
+Formatting contract:
+- Use # through ###### for a real heading hierarchy; never fake headings with bold text.
+- Use short paragraphs, Markdown lists, pipe tables, > blockquotes, fenced code, and --- separators appropriately.
+- Write inline equations as $LaTeX$ and display equations as a single $$LaTeX$$ line. Prefer standard LaTeX commands.
+- Preserve Hebrew and Arabic naturally. Do not reverse characters. Keep English/code/math tokens in their natural order inside RTL text.
+- Use **bold**, *italic*, ~~strike~~, and backticks only for semantic emphasis.
+- Do not emit HTML, base64, OOXML, XML, or Markdown code fences around the full response.
+- If Word text is selected and the user asks to edit it, choose replace_selection. Otherwise choose insert_markdown.
+The add-in deterministically converts your Markdown into native Word styles, lists, tables, BiDi runs, and OMML math.`;
 
-const STORAGE_KEYS = {
-  apiBase: "md2docx_office_api_base",
-  provider: "md2docx_office_provider",
-  model: "md2docx_office_model",
-};
-
-const DEFAULT_MODELS = {
-  openai: "gpt-5",
-  anthropic: "claude-3-5-sonnet-latest",
-  gemini: "gemini-2.0-flash",
-};
-
-const TOOL_SPEC = [
-  "You are an editing agent for Microsoft Word.",
-  "Decide exactly one action and respond as strict JSON (no markdown fences, no extra text):",
-  '{"action":"insert_markdown|replace_selection|reply","markdown":"...","reply":"..."}',
-  "Use insert_markdown for adding new content at the cursor.",
-  "Use replace_selection for editing/replacing selected text.",
-  "Use reply only when you need clarification.",
-  "If action is reply, keep markdown empty.",
-].join("\n");
-
-const els = {};
-
+const els = {}, history = [];
 Office.onReady(() => {
-  bindDom();
-  loadState();
-  wireEvents();
-  refreshSelection().catch((err) => setStatus(err.message, true));
+  for (const id of ["settingsToggle", "settings", "provider", "model", "providerApiKey", "selectionSummary", "refreshSelection", "chat", "prompt", "send", "sendApply", "markdownDraft", "insertDraft", "replaceSelection", "status"]) els[id] = document.getElementById(id);
+  loadSettings(); wireEvents(); refreshSelection().catch(showError);
 });
 
-function bindDom() {
-  [
-    "apiBase",
-    "provider",
-    "model",
-    "providerApiKey",
-    "instruction",
-    "selectionPreview",
-    "markdownDraft",
-    "refreshSelection",
-    "askAi",
-    "askAndApply",
-    "insertDraft",
-    "replaceSelection",
-    "status",
-  ].forEach((id) => {
-    els[id] = document.getElementById(id);
-  });
-}
-
 function wireEvents() {
-  els.refreshSelection.addEventListener("click", () => {
-    refreshSelection().catch((err) => setStatus(err.message, true));
-  });
-
-  els.askAi.addEventListener("click", () => {
-    askAi(false).catch((err) => setStatus(err.message, true));
-  });
-
-  els.askAndApply.addEventListener("click", () => {
-    askAi(true).catch((err) => setStatus(err.message, true));
-  });
-
-  els.insertDraft.addEventListener("click", () => {
-    insertMarkdownFromDraft(false).catch((err) => setStatus(err.message, true));
-  });
-
-  els.replaceSelection.addEventListener("click", () => {
-    insertMarkdownFromDraft(true).catch((err) => setStatus(err.message, true));
-  });
-
-  els.provider.addEventListener("change", () => {
-    if (!els.model.value.trim()) {
-      els.model.value = DEFAULT_MODELS[els.provider.value] || "";
-    }
-    persistState();
-  });
-
-  [
-    "apiBase",
-    "provider",
-    "model",
-    "providerApiKey",
-  ].forEach((field) => {
-    els[field].addEventListener("input", persistState);
-  });
+  els.settingsToggle.addEventListener("click", () => { els.settings.hidden = !els.settings.hidden; els.settingsToggle.setAttribute("aria-expanded", String(!els.settings.hidden)); });
+  els.refreshSelection.addEventListener("click", () => refreshSelection().catch(showError));
+  els.send.addEventListener("click", () => sendChat(false).catch(showError));
+  els.sendApply.addEventListener("click", () => sendChat(true).catch(showError));
+  els.insertDraft.addEventListener("click", () => insertMarkdown(els.markdownDraft.value, false).catch(showError));
+  els.replaceSelection.addEventListener("click", () => insertMarkdown(els.markdownDraft.value, true).catch(showError));
+  els.provider.addEventListener("change", () => { els.model.value = DEFAULT_MODELS[els.provider.value]; saveSettings(); });
+  els.model.addEventListener("input", saveSettings);
+  els.prompt.addEventListener("keydown", (event) => { if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) sendChat(false).catch(showError); });
 }
-
-function loadState() {
-  els.apiBase.value = localStorage.getItem(STORAGE_KEYS.apiBase) || "https://md2docx.app";
-
+function loadSettings() {
   const provider = localStorage.getItem(STORAGE_KEYS.provider) || "openai";
-  els.provider.value = provider;
-
-  els.model.value =
-    localStorage.getItem(STORAGE_KEYS.model) ||
-    DEFAULT_MODELS[provider] ||
-    "";
-
-  // Provider credentials are intentionally session-only.
-  els.providerApiKey.value = "";
+  els.provider.value = provider; els.model.value = localStorage.getItem(STORAGE_KEYS.model) || DEFAULT_MODELS[provider]; els.providerApiKey.value = "";
 }
-
-function persistState() {
-  localStorage.setItem(STORAGE_KEYS.apiBase, els.apiBase.value.trim());
-  localStorage.setItem(STORAGE_KEYS.provider, els.provider.value);
-  localStorage.setItem(STORAGE_KEYS.model, els.model.value.trim());
-}
-
+function saveSettings() { localStorage.setItem(STORAGE_KEYS.provider, els.provider.value); localStorage.setItem(STORAGE_KEYS.model, els.model.value.trim()); }
 async function refreshSelection() {
-  const text = await getSelectionText();
-  els.selectionPreview.value = text || "";
-  setStatus(text ? "Selection refreshed." : "No selected text.");
+  const selected = await getSelectionText();
+  els.selectionSummary.textContent = selected ? `Selected: ${selected.slice(0, 90)}${selected.length > 90 ? "…" : ""}` : "No Word selection";
+  return selected;
 }
-
-async function askAi(applyAction) {
-  const provider = els.provider.value;
-  const providerApiKey = els.providerApiKey.value.trim();
-  const model = els.model.value.trim() || DEFAULT_MODELS[provider];
-  const instruction = els.instruction.value.trim();
-
-  if (!providerApiKey) {
-    throw new Error("Provider API key is required.");
-  }
-  if (!instruction) {
-    throw new Error("Instruction is required.");
-  }
-
-  setBusy(true, "Calling AI provider...");
-
-  const selectedText = await getSelectionText();
-  els.selectionPreview.value = selectedText || "";
-
-  const prompt = applyAction
-    ? [
-        TOOL_SPEC,
-        "",
-        "Instruction:",
-        instruction,
-        "",
-        "Current selected text:",
-        selectedText || "<empty>",
-      ].join("\n")
-    : [
-        "Return only markdown (no code fences).",
-        "If text is selected, edit that selection according to the instruction.",
-        "If no text is selected, produce new markdown content.",
-        "",
-        "Instruction:",
-        instruction,
-        "",
-        "Current selected text:",
-        selectedText || "<empty>",
-      ].join("\n");
-
-  const responseText = await callProvider({
-    provider,
-    apiKey: providerApiKey,
-    model,
-    prompt,
-  });
-
-  if (!applyAction) {
-    els.markdownDraft.value = responseText;
-    setBusy(false, "AI response received. Review and insert when ready.");
-    return;
-  }
-
-  const toolAction = parseToolAction(responseText);
-  if (toolAction.action === "reply") {
-    const reply = toolAction.reply || "The model requested clarification.";
-    setBusy(false, reply);
-    return;
-  }
-
-  if (!toolAction.markdown.trim()) {
-    throw new Error("Tool action did not include markdown content.");
-  }
-
-  els.markdownDraft.value = toolAction.markdown;
-  await insertMarkdown(toolAction.markdown, toolAction.action === "replace_selection");
-  setBusy(false, `Applied action: ${toolAction.action}.`);
+async function sendChat(applyImmediately) {
+  const prompt = els.prompt.value.trim(), apiKey = els.providerApiKey.value.trim();
+  if (!prompt) throw new Error("Write a message first.");
+  if (!apiKey) { els.settings.hidden = false; throw new Error("Enter your provider API key in Settings."); }
+  setBusy(true, "Asking the AI with Word formatting guidance…");
+  addMessage("user", prompt); els.prompt.value = "";
+  const selectedText = await refreshSelection();
+  const userContext = selectedText ? `${prompt}\n\nCurrent Word selection:\n${selectedText}` : `${prompt}\n\nThere is no selected Word text.`;
+  history.push({ role: "user", content: userContext });
+  const raw = await callProvider(els.provider.value, apiKey, els.model.value.trim(), history);
+  const result = parseAction(raw);
+  history.push({ role: "assistant", content: raw });
+  const visible = result.reply || (result.markdown ? "I prepared formatted Word content. Review it below or apply it to the document." : raw);
+  addMessage("assistant", visible);
+  if (result.markdown) els.markdownDraft.value = result.markdown;
+  if (applyImmediately && result.markdown) await insertMarkdown(result.markdown, result.action === "replace_selection");
+  setBusy(false, applyImmediately && result.markdown ? "Applied to Word." : "Response ready.");
 }
-
-function parseToolAction(raw) {
-  const fallback = {
-    action: "reply",
-    markdown: "",
-    reply: raw,
-  };
-
-  const jsonText = extractJsonObject(raw);
-  if (!jsonText) return fallback;
-
+function parseAction(raw) {
   try {
-    const parsed = JSON.parse(jsonText);
-    const action = ["insert_markdown", "replace_selection", "reply"].includes(parsed.action)
-      ? parsed.action
-      : "reply";
-    return {
-      action,
-      markdown: typeof parsed.markdown === "string" ? parsed.markdown : "",
-      reply: typeof parsed.reply === "string" ? parsed.reply : "",
-    };
-  } catch {
-    return fallback;
-  }
+    const match = raw.trim().match(/\{[\s\S]*\}/), value = JSON.parse(match ? match[0] : raw);
+    return { action: ["insert_markdown", "replace_selection", "reply"].includes(value.action) ? value.action : "reply", markdown: typeof value.markdown === "string" ? value.markdown : "", reply: typeof value.reply === "string" ? value.reply : "" };
+  } catch { return { action: "reply", markdown: "", reply: raw }; }
 }
-
-function extractJsonObject(text) {
-  const trimmed = text.trim();
-  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-    return trimmed;
-  }
-
-  const match = trimmed.match(/\{[\s\S]*\}/);
-  return match ? match[0] : "";
-}
-
-async function insertMarkdownFromDraft(replaceSelection) {
-  const markdown = els.markdownDraft.value.trim();
-  if (!markdown) {
-    throw new Error("Markdown draft is empty.");
-  }
-
-  setBusy(true, "Converting markdown to DOCX...");
-  await insertMarkdown(markdown, replaceSelection);
-  setBusy(false, replaceSelection ? "Selection replaced." : "Draft inserted.");
-}
-
 async function insertMarkdown(markdown, replaceSelection) {
-  const apiBase = els.apiBase.value.trim().replace(/\/$/, "");
-  if (!apiBase) {
-    throw new Error("md2docx API base URL is required.");
-  }
-
-  const headers = { "Content-Type": "application/json" };
-
-  const res = await fetch(`${apiBase}/convert/base64`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      markdown,
-      font: "Arial",
-      base_font: "Times New Roman",
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    const msg = body?.detail?.message || body?.detail || body?.error || res.statusText;
-    throw new Error(`Conversion failed: ${msg}`);
-  }
-
-  const payload = await res.json();
-  if (!payload.docx_base64) {
-    throw new Error("Invalid conversion response: missing base64 data.");
-  }
-
+  if (!markdown.trim()) throw new Error("There is no generated Markdown to insert.");
+  setBusy(true, "Building native Word content locally…");
+  const base64 = Md2Docx.toBase64(Md2Docx.convert(markdown, { font: "Arial", baseFont: "Times New Roman" }));
   await Word.run(async (context) => {
     const selection = context.document.getSelection();
-    selection.insertFileFromBase64(
-      payload.docx_base64,
-      replaceSelection ? Word.InsertLocation.replace : Word.InsertLocation.after
-    );
+    selection.insertFileFromBase64(base64, replaceSelection ? Word.InsertLocation.replace : Word.InsertLocation.after);
     await context.sync();
   });
+  setBusy(false, replaceSelection ? "Selection replaced with formatted content." : "Formatted content inserted.");
 }
-
-async function callProvider({ provider, apiKey, model, prompt }) {
+async function callProvider(provider, apiKey, model, messages) {
   if (provider === "openai") {
-    return callOpenAI(apiKey, model, prompt);
+    const response = await fetch("https://api.openai.com/v1/responses", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model, instructions: FORMAT_SYSTEM_PROMPT, input: messages.map((item) => ({ role: item.role, content: item.content })) }) });
+    const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload?.error?.message || "OpenAI request failed.");
+    return payload.output_text || (payload.output || []).flatMap((item) => item.content || []).filter((item) => item.type === "output_text").map((item) => item.text).join("\n");
   }
   if (provider === "anthropic") {
-    return callAnthropic(apiKey, model, prompt);
+    const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model, max_tokens: 2400, system: FORMAT_SYSTEM_PROMPT, messages }) });
+    const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload?.error?.message || "Anthropic request failed.");
+    return (payload.content || []).filter((item) => item.type === "text").map((item) => item.text).join("\n");
   }
   if (provider === "gemini") {
-    return callGemini(apiKey, model, prompt);
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const contents = messages.map((item) => ({ role: item.role === "assistant" ? "model" : "user", parts: [{ text: item.content }] }));
+    const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ system_instruction: { parts: [{ text: FORMAT_SYSTEM_PROMPT }] }, contents, generationConfig: { temperature: 0.2 } }) });
+    const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload?.error?.message || "Gemini request failed.");
+    return (payload?.candidates?.[0]?.content?.parts || []).map((item) => item.text || "").join("\n");
   }
   throw new Error(`Unsupported provider: ${provider}`);
 }
-
-async function callOpenAI(apiKey, model, prompt) {
-  // The Responses API is the current OpenAI text-generation interface.
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({ model, input: prompt }),
-  });
-  const payload = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(payload?.error?.message || "OpenAI request failed.");
-  if (typeof payload.output_text === "string") return payload.output_text;
-  return (payload.output || []).flatMap((item) => item.content || [])
-    .filter((part) => part.type === "output_text")
-    .map((part) => part.text || "")
-    .join("\n").trim();
-}
-
-async function callAnthropic(apiKey, model, prompt) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 1200,
-      temperature: 0.2,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-
-  const payload = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(payload?.error?.message || "Anthropic request failed.");
-  }
-
-  const content = Array.isArray(payload?.content) ? payload.content : [];
-  return content
-    .filter((item) => item?.type === "text")
-    .map((item) => item.text)
-    .join("\n")
-    .trim();
-}
-
-async function callGemini(apiKey, model, prompt) {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-      },
-    }),
-  });
-
-  const payload = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(payload?.error?.message || "Gemini request failed.");
-  }
-
-  const parts = payload?.candidates?.[0]?.content?.parts || [];
-  return parts
-    .map((part) => part?.text || "")
-    .join("\n")
-    .trim();
-}
-
-async function getSelectionText() {
-  return Word.run(async (context) => {
-    const selection = context.document.getSelection();
-    selection.load("text");
-    await context.sync();
-    return selection.text || "";
-  });
-}
-
-function setBusy(on, message) {
-  [
-    "refreshSelection",
-    "askAi",
-    "askAndApply",
-    "insertDraft",
-    "replaceSelection",
-  ].forEach((id) => {
-    els[id].disabled = on;
-  });
-
-  if (message) {
-    els.status.className = on ? "status busy" : "status";
-    els.status.textContent = message;
-  }
-}
-
-function setStatus(message, isError = false) {
-  els.status.textContent = message;
-  els.status.className = isError ? "status error" : "status";
-}
+async function getSelectionText() { return Word.run(async (context) => { const selection = context.document.getSelection(); selection.load("text"); await context.sync(); return selection.text || ""; }); }
+function addMessage(role, text) { const article = document.createElement("article"); article.className = `message ${role}`; const label = document.createElement("strong"), content = document.createElement("p"); label.textContent = role === "user" ? "You" : "Assistant"; content.textContent = text; article.append(label, content); els.chat.appendChild(article); els.chat.scrollTop = els.chat.scrollHeight; }
+function setBusy(busy, message) { for (const id of ["send", "sendApply", "refreshSelection", "insertDraft", "replaceSelection"]) els[id].disabled = busy; els.status.textContent = message; els.status.className = busy ? "status busy" : "status"; }
+function showError(error) { setBusy(false, error.message || String(error)); els.status.className = "status error"; }

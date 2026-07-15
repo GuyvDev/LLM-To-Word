@@ -10,9 +10,9 @@
 | Hebrew/Arabic RTL, mixed BiDi, and native LaTex/OMML math | ✅ Ready |
 | Stateless FastAPI conversion API | ✅ Ready |
 | Browser web client | ✅ Ready for same-origin or configured API deployment |
-| Chrome extension for GitHub and HackMD | 🔄 Needs browser E2E and Store validation |
-| Word add-in + optional user AI provider | 🔄 BYOK restored; needs hosted assets, provider review, and Microsoft validation |
-| Windows clipboard helper | 🟡 Optional local tool |
+| Self-contained Chrome extension for GitHub and HackMD | 🔄 Local converter implemented; needs browser E2E and Store validation |
+| Word AI chat add-in + local Word renderer | 🔄 Implemented; needs hosted assets, provider review, and Microsoft validation |
+| Windows clipboard helper and hotkey installer | 🔄 Production candidate; needs clean-machine/Word visual validation |
 
 ## Release checklist
 

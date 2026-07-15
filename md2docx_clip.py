@@ -17,11 +17,10 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
-import subprocess
 import traceback
+from pathlib import Path
 
-VENV_PY  = r"C:\opt\md2docx\.venv\Scripts\python.exe"
-MD2DOCX  = r"C:\opt\md2docx\md2docx.py"
+MD2DOCX = str(Path(__file__).resolve().with_name("md2docx.py"))
 
 
 def get_clipboard_text() -> str:
@@ -51,8 +50,10 @@ def copy_docx_to_clipboard(docx_path: str) -> None:
     doc = None
     try:
         doc = word.Documents.Open(FileName=docx_path, AddToRecentFiles=False, Visible=False)
-        word.Selection.WholeStory()
-        word.Selection.Copy()
+        doc.Content.Copy()
+        # Materialize delayed OLE clipboard formats before Word/document closes.
+        import pythoncom
+        pythoncom.OleFlushClipboard()
     finally:
         if doc is not None:
             try:
@@ -69,6 +70,10 @@ def copy_docx_to_clipboard(docx_path: str) -> None:
 
 
 def main() -> None:
+    if os.name != "nt":
+        raise RuntimeError("The clipboard helper requires Windows and Microsoft Word.")
+    if not os.path.isfile(MD2DOCX):
+        raise FileNotFoundError(f"Converter not found next to clipboard helper: {MD2DOCX}")
     # ── Source text ──────────────────────────────────────────────────────────
     if len(sys.argv) >= 2:
         with open(sys.argv[1], encoding="utf-8") as f:
@@ -81,25 +86,14 @@ def main() -> None:
             sys.exit(1)
         print(f"Read {len(text)} characters from clipboard.")
 
-    # ── Write to temp input file ─────────────────────────────────────────────
-    tmp_in = None
+    # Convert into a private temporary DOCX, then let Word copy its content.
     tmp_out = None
     try:
-        # NamedTemporaryFile reserves the path atomically; mktemp() is unsafe.
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", encoding="utf-8", delete=False) as f:
-            tmp_in = f.name
-            f.write(text)
-        tmp_out = tmp_in.removesuffix(".txt") + ".docx"
-
-        # ── Convert via md2docx ──────────────────────────────────────────────
+        with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as f:
+            tmp_out = f.name
         print("Converting to .docx ...")
-        result = subprocess.run(
-            [VENV_PY, MD2DOCX, tmp_in, "-o", tmp_out],
-            capture_output=True, text=True
-        )
-        if result.returncode != 0:
-            print("md2docx error:\n", result.stderr)
-            sys.exit(1)
+        from md2docx import convert_markdown
+        Path(tmp_out).write_bytes(convert_markdown(text))
 
         # ── Copy rich content to clipboard via Word ──────────────────────────
         print("Copying formatted content to clipboard via Word ...")
@@ -107,11 +101,17 @@ def main() -> None:
 
         print("Done! Paste into Word with Ctrl+V.")
 
-    except Exception:
+    except Exception as exc:
         traceback.print_exc()
+        # pythonw/shortcut launches have no console, so make failures visible.
+        try:
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(0, str(exc), "md2docx clipboard error", 0x10)
+        except Exception:
+            pass
         sys.exit(1)
     finally:
-        for path in (tmp_in, tmp_out):
+        for path in (tmp_out,):
             if not path:
                 continue
             try:

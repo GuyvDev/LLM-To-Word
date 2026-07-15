@@ -49,13 +49,13 @@ Requires **Python 3.12+** for the supported container runtime.
 
 ## Word Add-in (Office) — optional beta
 
-The optional Word task-pane add-in can use a user's own OpenAI, Anthropic, or Gemini API key to generate Markdown, then converts and inserts it directly into Word. The md2docx conversion API itself requires no account or API key. See `office-addin/README.md` for BYOK and OAuth-broker guidance.
+The optional Word task-pane add-in provides an AI chat over the current Word selection. It sends a Word-formatting contract with every provider request, converts returned Markdown locally in JavaScript, and inserts native Word content directly. No md2docx conversion API is used. See `office-addin/README.md` for BYOK and credential-broker guidance.
 
 See `office-addin/README.md` for deployment and validation steps.
 
 ## Clipboard Service Plan
 
-`CLIPBOARD_SERVICE_PLAN.md` describes the optional local clipboard helper and the `/convert/base64` Word-integration path.
+`CLIPBOARD_SERVICE_PLAN.md` documents the production Windows installer, local clipboard helper, and `Ctrl+Alt+M` shortcut.
 
 ---
 
@@ -345,4 +345,4 @@ curl -X POST http://localhost:8000/convert \
   --output result.docx
 ```
 
-The API exposes `POST /convert`, `POST /convert/base64`, and `GET /health`. For the Chrome extension, set `extension/config.js` to your HTTPS API origin and align `host_permissions` in `extension/manifest.json`. See [DEPLOYMENT.md](DEPLOYMENT.md), [PRIVACY.md](PRIVACY.md), and [ROADMAP.md](ROADMAP.md).
+The optional API exposes `POST /convert`, `POST /convert/base64`, and `GET /health` for web/self-hosted integrations. The Chrome extension does not use it: conversion is bundled and runs locally. See [extension/README.md](extension/README.md), [DEPLOYMENT.md](DEPLOYMENT.md), [PRIVACY.md](PRIVACY.md), and [ROADMAP.md](ROADMAP.md).

@@ -1,9 +1,49 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>md2docx AI Assistant</title><link rel="stylesheet" href="taskpane.css" /><script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script></head>
-<body><main class="app"><header><h1>md2docx AI Assistant</h1><p>Ask your own AI provider for Markdown, then insert native Word output.</p></header>
-<section class="card"><h2>Conversion API</h2><label for="apiBase">md2docx API base URL</label><input id="apiBase" type="url" value="https://md2docx.app" /><small>No md2docx account or API key is required.</small></section>
-<section class="card"><h2>AI provider (optional)</h2><label for="provider">Provider</label><select id="provider"><option value="openai">OpenAI</option><option value="anthropic">Claude (Anthropic)</option><option value="gemini">Google Gemini</option></select><label for="model">Model</label><input id="model" type="text" value="gpt-5" /><label for="providerApiKey">Your provider API key</label><input id="providerApiKey" type="password" autocomplete="off" /><small>Held only for this session and sent directly to the selected provider. Your selected Word text is sent when you ask AI.</small></section>
-<section class="card"><h2>Prompt</h2><label for="instruction">Instruction</label><textarea id="instruction" rows="4" placeholder="Example: Rewrite the selected paragraph as concise bullet points and keep equations intact."></textarea><div class="actions"><button id="refreshSelection">Refresh selection</button><button id="askAi">Ask AI</button><button id="askAndApply">Ask + apply tool action</button></div><label for="selectionPreview">Selected text in Word</label><textarea id="selectionPreview" rows="5" readonly></textarea></section>
-<section class="card"><h2>Markdown Draft</h2><label for="markdownDraft">Markdown to insert</label><textarea id="markdownDraft" rows="8" placeholder="# Title
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>md2docx Word Copilot</title>
+  <link rel="stylesheet" href="taskpane.css" />
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="/extension/md2docx.js"></script>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div><h1>Word Copilot</h1><p>Chat, edit, and insert native Word content.</p></div>
+      <button id="settingsToggle" class="ghost" aria-expanded="false">Settings</button>
+    </header>
 
-Your generated markdown..."></textarea><div class="actions"><button id="insertDraft">Insert draft</button><button id="replaceSelection">Replace selection</button></div></section><p id="status" class="status">Ready.</p></main><script src="taskpane.js"></script></body></html>
+    <section id="settings" class="settings" hidden>
+      <label for="provider">AI provider</label>
+      <select id="provider"><option value="openai">OpenAI</option><option value="anthropic">Claude</option><option value="gemini">Gemini</option></select>
+      <label for="model">Model</label><input id="model" value="gpt-5" />
+      <label for="providerApiKey">API key (this session only)</label><input id="providerApiKey" type="password" autocomplete="off" />
+      <small>The add-in sends chat and selected text directly to your chosen provider. For managed use, connect a server-side credential broker.</small>
+    </section>
+
+    <section class="selection-bar">
+      <span id="selectionSummary">No Word selection</span>
+      <button id="refreshSelection" class="ghost">Refresh</button>
+    </section>
+
+    <section id="chat" class="chat" aria-live="polite">
+      <article class="message assistant"><strong>Assistant</strong><p>Select text in Word or ask me to draft something. I’ll return Word-safe Markdown and can insert or replace it with native formatting.</p></article>
+    </section>
+
+    <section class="composer">
+      <textarea id="prompt" rows="4" placeholder="Rewrite the selection clearly, create a table, add an equation…"></textarea>
+      <div class="actions"><button id="send">Send</button><button id="sendApply">Send + apply</button></div>
+    </section>
+
+    <details class="draft-panel">
+      <summary>Generated Markdown</summary>
+      <textarea id="markdownDraft" rows="8"></textarea>
+      <div class="actions"><button id="insertDraft">Insert at cursor</button><button id="replaceSelection">Replace selection</button></div>
+    </details>
+    <p id="status" class="status">Ready. Formatting guidance is active.</p>
+  </main>
+  <script src="taskpane.js"></script>
+</body>
+</html>

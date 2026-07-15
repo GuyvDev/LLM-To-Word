@@ -13,8 +13,7 @@
 
   "host_permissions": [
     "https://github.com/*",
-    "https://hackmd.io/*",
-    "https://md2docx.app/*"
+    "https://hackmd.io/*"
   ],
 
   "action": {

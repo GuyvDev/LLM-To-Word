@@ -1,68 +1,25 @@
-/**
- * background.js — md2docx Extension Service Worker (Manifest V3)
- *
- * Handles:
- *  - CONVERT messages from popup.js and content scripts
- *  - Fetches the API, receives binary .docx, triggers browser download
- *
- * Why do API calls in the background?
- *  Content scripts and popups can't use fetch() with binary responses
- *  and then trigger downloads reliably. The background service worker
- *  serialises the bytes as a base64 data-URL and calls chrome.downloads.
- */
+/** Manifest V3 worker: convert Markdown locally and download the DOCX. */
+importScripts("md2docx.js");
 
-importScripts("config.js");
-const API_BASE = self.MD2DOCX_API_BASE || "https://md2docx.app";
-
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type === "CONVERT") {
-    handleConvert(msg).then(sendResponse);
-    return true;   // keep message channel open for async response
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === "CONVERT") {
+    handleConvert(message).then(sendResponse);
+    return true;
   }
+  return false;
 });
 
 async function handleConvert({ markdown, filename = "result.docx" }) {
-  const headers = { "Content-Type": "application/json" };
-
-  let response;
   try {
-    response = await fetch(`${API_BASE}/convert`, {
-      method:  "POST",
-      headers,
-      body: JSON.stringify({ markdown }),
+    const bytes = self.Md2Docx.convert(markdown, {
+      font: "Arial",
+      baseFont: "Times New Roman",
     });
-  } catch (err) {
-    return { ok: false, error: `Network error: ${err.message}` };
+    const base64 = self.Md2Docx.toBase64(bytes);
+    const url = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${base64}`;
+    await chrome.downloads.download({ url, filename, saveAs: false });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: `Local conversion failed: ${error.message}` };
   }
-
-  if (!response.ok) {
-    let detail = "";
-    try {
-      const body = await response.json();
-      detail = body?.detail?.message ?? body?.detail ?? response.statusText;
-    } catch {
-      detail = response.statusText;
-    }
-    return { ok: false, status: response.status, error: detail };
-  }
-
-  // Convert binary response → base64 data URL for chrome.downloads
-  const arrayBuf = await response.arrayBuffer();
-  const base64   = bufferToBase64(arrayBuf);
-  const dataUrl  = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${base64}`;
-
-  await chrome.downloads.download({
-    url:      dataUrl,
-    filename,
-    saveAs:   false,
-  });
-
-  return { ok: true };
-}
-
-function bufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary  = "";
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary);
 }
