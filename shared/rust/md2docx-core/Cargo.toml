@@ -22,4 +22,4 @@ zip = { version = "8.6.0", default-features = false }
 wasm-bindgen = "0.2.114"
 
 [dev-dependencies]
-quick-xml = "0.39"
+quick-xml = "0.41"
