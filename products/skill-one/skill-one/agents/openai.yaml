@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill One"
+  short_description: "Create validated, professional Word documents"
+  default_prompt: "Use $skill-one to create and validate a polished DOCX from my content."

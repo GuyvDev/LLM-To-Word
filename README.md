@@ -1,348 +1,256 @@
-# md2docx
-
-Convert Markdown files containing **Hebrew (RTL) text**, **LaTeX math**, and
-standard formatting into natively-formatted Microsoft Word `.docx` files —
-with no image rendering, no COM automation, and no LibreOffice dependency.
-
-> **Pure Python.** Math is embedded as native OMML equations. Hebrew text is
-> properly right-aligned with BiDi runs. Tables, lists, blockquotes, and all
-> common Markdown elements are supported.
-
----
-
-## Features
-
-| Feature | Details |
-|---|---|
-| **Math** | LaTeX → MathML → OMML (native Word equations, not images) |
-| **Hebrew / Arabic RTL** | Auto-detected; `<w:bidi>`, `<w:rtl>`, `w:cs` font injected |
-| **Mixed BiDi** | Hebrew + Latin on one line — each script gets its own `<w:r>` run |
-| **Headings** | H1–H6 (`#` … `######`) with academic black heading styles |
-| **Inline formatting** | `**bold**` · `*italic*` · `` `code` `` · `~~strikethrough~~` |
-| **Block equations** | `$$…$$` on its own line — display centred equation |
-| **Inline equations** | `$…$` anywhere in a paragraph |
-| **Tables** | Pipe syntax — centred, bold header row, inline markup in cells |
-| **Lists** | Unordered (`-` / `*` / `+`) and ordered (`1.`) |
-| **Blockquotes** | `>` — italic, indented, grey left border |
-| **Horizontal rule** | `---` / `***` / `___` |
-| **Academic style** | Times New Roman 12 pt, 1.5× spacing, standard margins |
-
----
-
-## Installation
-
-```bash
-pip install -r requirements.txt
-```
-
-**Dependencies** (see `requirements.txt`):
-
-| Package | Purpose |
-|---|---|
-| `python-docx` | Word document container and high-level API |
-| `lxml` | Low-level XML for injecting OMML math and BiDi properties |
-| `latex2mathml` | LaTeX string → W3C MathML XML |
-
-Requires **Python 3.12+** for the supported container runtime.
-
----
-
-## Word Add-in (Office) — optional beta
-
-The optional Word task-pane add-in provides an AI chat over the current Word selection. It sends a Word-formatting contract with every provider request, converts returned Markdown locally in JavaScript, and inserts native Word content directly. No md2docx conversion API is used. See `office-addin/README.md` for BYOK and credential-broker guidance.
-
-See `office-addin/README.md` for deployment and validation steps.
-
-## Clipboard Service Plan
-
-`CLIPBOARD_SERVICE_PLAN.md` documents the production Windows installer, local clipboard helper, and `Ctrl+Alt+M` shortcut.
-
----
-
-## Usage
-
-```bash
-# Convert a file
-python md2docx.py input.txt -o output.docx
-
-# Run the built-in feature demo
-python md2docx.py
-
-# Custom fonts
-python md2docx.py input.txt -o output.docx --font "David" --base-font "David"
-```
-
-### CLI options
-
-| Flag | Default | Description |
-|---|---|---|
-| `INPUT` | _(none)_ | Input text file path. Omit to run the built-in demo. |
-| `-o / --output` | `result.docx` | Output `.docx` path |
-| `--font` | `Arial` | Complex-script font for Hebrew / Arabic glyphs (`w:cs` slot) |
-| `--base-font` | `Times New Roman` | Body and heading font |
-
----
-
-## Quick Example
-
-**Input (`input.txt`):**
-
-```
-# Mathematical Foundations
-
-The quadratic formula solves $ax^2 + bx + c = 0$:
-
-$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$
-
-## Hebrew Section
-
-שלום עולם! זוהי פסקה בעברית הכתובה מימין לשמאל.
-
-## Mixed BiDi
-
-התוכנה מתחילה עם main()
-הפונקציה קוראת ל־initialize()
-
-## Formatting
-
-This paragraph has **bold text**, *italic text*, `inline code`, and ~~strikethrough~~.
-
-## Table
-
-| Formula | Description |
-|---|---|
-| $E = mc^2$ | Energy-mass equivalence |
-| $a^2 + b^2 = c^2$ | Pythagorean theorem |
-
-## Lists
-
-- First bullet item
-- Second item with $x^2 + y^2$ inline math
-
-1. First numbered item
-2. Second numbered item
-
-## Blockquote
-
-> Mathematics is the language of the universe.
-```
-
-**Command:**
-
-```bash
-python md2docx.py input.txt -o output.docx
-```
-
-**Result — what Word renders:**
-
-- The `# Mathematical Foundations` title appears centred, 22 pt, bold, underlined.
-- `$$…$$` becomes a native Word equation (editable in Word's equation editor).
-- Hebrew paragraphs are automatically right-aligned with proper BiDi shaping.
-- `main()` stays at the visual left edge of its Hebrew RTL paragraph.
-- The table is centred on the page with a bold header row and centred cell content.
-
----
-
-## Supported Markdown Syntax
-
-### Headings
-
-```
-# Heading 1      →  22 pt, bold, underline, centred
-## Heading 2     →  14 pt, bold, left-aligned
-### Heading 3    →  12 pt, bold italic, left-aligned
-#### Heading 4   →  11 pt, bold, left-aligned
-##### Heading 5  →  10 pt, bold, left-aligned
-###### Heading 6 →  10 pt, bold italic, left-aligned
-```
-
-> **Tip:** Do not add a blank line after a heading. Heading styles already
-> include spacing-before. An empty line creates a double gap.
-
-### Math
-
-```
-Inline:  $a^2 + b^2 = c^2$
-Block:   $$\frac{d}{dx}\sin(x) = \cos(x)$$
-```
-
-Block equations must be on their own line, starting and ending with `$$`.
-Supported LaTeX: fractions, roots, super/subscripts, operators (`\pm`, `\cdot`,
-`\neq`), functions (`\sin`, `\cos`, `\frac`), and more via `latex2mathml`.
-
-### Inline Formatting
-
-```
-**bold**          →  bold run
-*italic*          →  italic run
-`code`            →  Courier New 10 pt monospace run
-~~strikethrough~~ →  strikethrough run
-**$E = mc^2$**    →  bold text wrapping a math equation
-```
-
-### Lists
-
-```
-- Unordered item       (also works with * or +)
-1. Ordered item
-2. Second ordered item
-```
-
-### Tables
-
-```
-| Header A  | Header B  |
-|-----------|-----------|
-| cell      | $x^2$     |
-| **bold**  | `code`    |
-```
-
-- Header row rendered **bold**.
-- LTR tables use centred cell content.
-- Hebrew/Arabic tables switch to RTL cell direction and visual column flow
-  (first Markdown column appears on the right).
-- Table centred on the page.
-- Cell content supports all inline markup.
-
-### Blockquote and Horizontal Rule
-
-```
-> Quoted text — italic, indented, grey left border.
-
----
-```
-
-### Hebrew / RTL
-
-No special syntax. Hebrew and Arabic characters are auto-detected.
-
-```
-שלום עולם!                         →  RTL paragraph, right-aligned
-התוכנה מתחילה עם main()            →  Mixed BiDi: Hebrew + LTR island
-הנוסחה: $x = \frac{-b}{2a}$       →  Hebrew + inline math
-```
-
----
-
-## Converting the Output to PDF
-
-The tool produces a `.docx`. For PDF output, use the **Windows host** — Word
-COM automation gives pixel-perfect rendering of Hebrew BiDi and OMML equations.
-
-**From WSL / the dev VM terminal (PowerShell Word COM):**
-
-```bash
-powershell.exe -Command "
-  \$w = New-Object -ComObject Word.Application; \$w.Visible = \$false;
-  \$d = \$w.Documents.Open('C:\\full\\path\\output.docx');
-  \$d.SaveAs([ref]'C:\\full\\path\\output.pdf', [ref]17);
-  \$d.Close(); \$w.Quit()
-"
-```
-
-**On the Windows host (Python `docx2pdf`):**
+# LLM to Word
+
+Local, self-contained tools that turn LLM output into polished Microsoft Word
+documents. The project focuses on native RTL and BiDi behavior, editable OMML
+equations, logical RTL tables, centered cells, and stable spacing between
+Hebrew or Arabic and English, numbers, code, currency, brackets, and
+punctuation.
+
+No current product requires a hosted conversion API, account, payment, Docker
+runtime, watermark, or telemetry. Docker is used only as a development test for
+Skill One.
+
+## Products and release status
+
+Status meanings:
+
+- **Verified**: automated tests and the applicable local benchmark pass.
+- **Release candidate**: implementation is complete, but an external store or
+  clean-machine acceptance gate remains.
+- **Beta**: implemented, but it still requires end-to-end product validation.
+
+| Product | Status | Delivery | Remaining release work |
+|---|---|---|---|
+| [Chrome extension](products/chrome-extension/README.md) | Release candidate | Manifest V3 with bundled WebAssembly | Chrome acceptance test, Web Store validation, signing, and publication |
+| [Clipboard helper](products/clipboard-helper/README.md) | Release candidate | Windows installer plus native compiler | Clean Windows machine installation, global hotkey, and Word clipboard acceptance test |
+| [Skill One](products/skill-one/README.md) | Verified | Installable AI skill with bundled Python compiler | Optional provider-specific marketplace publication |
+| [Word add-in](products/word-addin/README.md) | Beta, not end-to-end tested | HTTPS Office task pane with bundled WebAssembly | Hosted deployment, credential broker, provider tests, Word tests, and Microsoft manifest validation |
+
+The retired FastAPI service, web client, legacy Python Markdown converter, and
+Python CLI are intentionally absent. They are not required by the current
+architecture.
+
+## Feature matrix
+
+| Capability | Chrome extension | Clipboard helper | Skill One | Word add-in |
+|---|:---:|:---:|:---:|:---:|
+| Runs without a conversion service | Yes | Yes | Yes | Yes |
+| Download a native DOCX | Yes | Temporary internal DOCX | Yes | Inserts into Word |
+| Formatted clipboard output | Yes | Yes, Word-native | No | No |
+| Capture visible LLM output | Yes | Clipboard input | Agent-provided content | AI chat and Word selection |
+| CommonMark and GFM Markdown | Yes | Yes | Uses DocSpec instead | Yes |
+| Native editable OMML equations | Yes | Yes | Yes | Yes |
+| RTL paragraphs and mixed BiDi runs | Yes | Yes | Yes | Yes |
+| RTL table column behavior | Yes | Yes | Yes | Yes |
+| Centered table cells | Yes | Yes | Yes | Yes |
+| Deterministic OOXML self-validation | Shared compiler tests | Shared compiler tests | Built into every build | Shared compiler tests |
+| User AI credential required | No | No | No | Only for optional AI chat |
+
+## Chrome extension
+
+The extension captures the latest visible answer from ChatGPT, Claude, Gemini,
+Microsoft Copilot, Grok, Perplexity, DeepSeek, or a generic LLM page. Users can
+also capture selected page content or paste Markdown manually. Auto-detection
+selects the provider dialect without injecting a formatting prompt into the
+LLM.
+
+Features include:
+
+- Local Manifest V3 service worker with a packaged Rust/WebAssembly compiler.
+- Downloaded DOCX and Word-compatible formatted clipboard output.
+- Headings H1 through H6, paragraphs, emphasis, links, images as labels/URLs,
+  nested lists, blockquotes, fenced code with arbitrary languages, horizontal
+  rules, tables, task lists, footnotes, description lists, highlights,
+  underline, subscript, and superscript.
+- Inline and block LaTeX converted to OMML in DOCX and Presentation MathML in
+  formatted clipboard HTML.
+- Word-stable mixed-direction spacing and logical RTL table columns.
+- Temporary `activeTab` capture instead of broad LLM host permissions.
+
+Install from source:
+
+1. Open `chrome://extensions`.
+2. Enable **Developer mode**.
+3. Select **Load unpacked**.
+4. Choose `products/chrome-extension`.
+5. Pin **md2docx - Markdown to Word**.
+
+See the [Chrome extension guide](products/chrome-extension/README.md) for use
+and current acceptance gates.
+
+## Clipboard helper
+
+The Windows helper reads Markdown from the clipboard, runs the same canonical
+native Rust compiler, asks Microsoft Word to create native rich clipboard
+formats, and leaves the result ready for normal paste.
+
+Features include:
+
+- One-command PowerShell installation under `%LOCALAPPDATA%\Programs\md2docx`.
+- Private Python environment with pinned Windows automation dependency.
+- Start Menu shortcut and configurable global hotkey, default `Ctrl+Alt+M`.
+- Repair/upgrade by rerunning the installer and guarded uninstall support.
+- Reuses an existing Word process without closing it; closes only documents and
+  processes created by the helper.
+- Local temporary files are removed after conversion and shortcut errors are
+  shown in a Windows dialog.
+
+Build and install from a source checkout:
 
 ```powershell
-pip install docx2pdf
-docx2pdf output.docx output.pdf
+.\scripts\build_converter_core.ps1
+PowerShell -ExecutionPolicy Bypass -File .\products\clipboard-helper\install.ps1
 ```
 
-See `FORMATTING_GUIDE.md` → *Converting to PDF* for all options including
-LibreOffice headless as a fallback.
+The packaged release includes `md2docx-core.exe`, so release users do not need
+Rust. Microsoft Word desktop and Python 3.12 or newer are currently required.
 
----
+## Skill One
 
-## How It Works
+Skill One is a provider-neutral AI skill that converts strict DocSpec 1.0 JSON
+through its bundled, dependency-free Python compiler. GPT, Claude, Codex, or
+another agent receives the same schema and script. Identical DocSpec input
+produces byte-identical DOCX output.
 
-### Why not use python-docx's normal API?
+Features include:
 
-python-docx exposes no API for two critical features:
+- Native RTL run properties and Word-stable mixed Hebrew/English spacing.
+- Native OMML inline and block equations with supported LaTeX validation.
+- Semantic RTL tables, centered cells, headings, paragraphs, quotes, code,
+  links, page breaks, and independent list numbering.
+- Modern Word compatibility settings and deterministic ZIP/XML packaging.
+- Automatic replacement of em dashes with regular hyphens.
+- Self-validation of parts, relationships, XML, table properties, equations,
+  list restarts, RTL runs, and prohibited output.
+- Privacy-safe visual-review instructions that use PDF page images only and
+  prohibit desktop or application-window screenshots.
 
-1. **BiDi / RTL** — requires injecting `<w:bidi/>` into `<w:pPr>` and `<w:rtl/>` into `<w:rPr>` with `w:cs` font slots. python-docx has no method for this.
-2. **OMML equations** — Word uses its own Office Math Markup Language, not MathML. `<m:oMath>` must be appended directly as a sibling of `<w:r>` inside `<w:p>`.
+Package or run it directly:
 
-Both are handled by direct lxml element-tree manipulation.
-
-### Math pipeline
-
-```
-LaTeX string
-    │
-    ▼ latex2mathml.converter.convert()
-W3C MathML XML string
-    │
-    ▼ lxml.etree.fromstring()
-MathML element tree
-    │
-    ▼ _convert_node()  (recursive MathML → OMML translator)
-OMML <m:oMath> element
-    │
-    ▼ para._element.append()
-Word paragraph with native equation
+```powershell
+python products\skill-one\package_skill.py
+python products\skill-one\skill-one\scripts\docx_brain.py build input.json output.docx --report report.json
+python products\skill-one\skill-one\scripts\docx_brain.py validate output.docx --json
 ```
 
-### RTL / BiDi pipeline
+See [installation](products/skill-one/INSTALL.md), the
+[implementation plan](products/skill-one/PLAN.md), and the
+[DocSpec contract](products/skill-one/skill-one/references/docspec.md).
 
-```
-Hebrew text detected (_is_rtl)
-    │
-    ├─▶ _set_rtl_para()
-    │     <w:bidi w:val="1"/>          paragraph base direction = RTL
-    │     <w:jc w:val="start"/>        physical-right alignment (not "right"!
-    │                                  OOXML §17.3.1.17 reverses left/right
-    │                                  under bidi — "start" is direction-aware)
-    │
-    └─▶ _split_rtl_ltr()              split mixed line by script direction
-          Hebrew segment → _set_rtl_run()
-            <w:rFonts w:cs="Arial"/>   Hebrew glyphs come from cs= font slot
-            <w:rtl w:val="1"/>
-            <w:lang w:bidi="he-IL"/>
-          Latin segment  → plain run  (no <w:rtl/>, BiDi algo positions it)
-```
+## Word add-in
 
----
+The Office task pane provides an AI chat that can read the current Word
+selection on request and return insert, replace-selection, or conversational
+reply actions. Its formatting contract asks the provider for structured
+Markdown, while the bundled local renderer owns Word formatting.
 
-## Project Structure
+Implemented features include:
 
-```
-md2docx.py          Main script and library
-api/                Stateless FastAPI service
-web/                Browser client
-extension/          Chrome extension
-office-addin/       Optional Word add-in
-tests/              Automated regression tests
-requirements.txt    Python dependencies
-sample_input.txt    Example input file demonstrating all features
-```
+- OpenAI, Anthropic, and Gemini direct-provider adapters for personal testing.
+- Session-only API key handling; keys are not written to local storage.
+- Selection preview, conversation history, generated Markdown review, insert,
+  and replace-selection actions.
+- Local WebAssembly conversion with the packaged JavaScript compatibility
+  renderer as fallback.
+- Native Word insertion through `insertFileFromBase64`.
 
----
+The add-in is not yet production-validated. It still needs an HTTPS deployment,
+an organization-controlled credential broker, real provider tests, Word desktop
+and Word Online tests, and Microsoft manifest validation. Do not deploy its
+direct browser-key mode as an organization-wide credential architecture.
 
-## License
+## Canonical compiler
 
-MIT
+`shared/rust/md2docx-core/` owns Markdown parsing, source-profile selection,
+DOCX generation, clipboard HTML, OMML math, RTL tables, mixed-direction
+spacing, styling, and OOXML packaging for the Chrome extension, clipboard
+helper, and Word add-in.
 
----
+Build native Windows and browser outputs:
 
-## Contributing
-
-Bug reports and pull requests welcome. When reporting a rendering issue, please
-include the minimal `.txt` input that reproduces the problem and a description
-of the expected vs. actual Word output.
-
-
-## Open-source and self-hosting
-
-md2docx is MIT licensed. The core converter and conversion API have no login, payment, conversion API-key, quota-database, watermark, or telemetry requirement. The optional Office AI feature uses a provider credential supplied by the user. Run it locally as a CLI/library, or deploy the included stateless API:
-
-```bash
-docker build -t md2docx .
-docker run --rm -p 8000:8000 md2docx
-
-# Convert through the API
-curl -X POST http://localhost:8000/convert \
-  -H "Content-Type: application/json" \
-  -d '{"markdown":"# Hello"}' \
-  --output result.docx
+```powershell
+.\scripts\build_converter_core.ps1
 ```
 
-The optional API exposes `POST /convert`, `POST /convert/base64`, and `GET /health` for web/self-hosted integrations. The Chrome extension does not use it: conversion is bundled and runs locally. See [extension/README.md](extension/README.md), [DEPLOYMENT.md](DEPLOYMENT.md), [PRIVACY.md](PRIVACY.md), and [ROADMAP.md](ROADMAP.md).
+The WebAssembly files are written to `products/chrome-extension/core/`. The
+native executable is written to the ignored `dist/windows/` directory.
+
+## Build release packages
+
+Create all four product bundles and a SHA-256 checksum manifest:
+
+```powershell
+.\scripts\package_release.ps1
+```
+
+Output is written to the ignored `dist/releases/` directory:
+
+- `chrome-extension.zip`
+- `clipboard-helper-windows-x64.zip`
+- `skill-one.zip`
+- `word-addin-host.zip`
+- `SHA256SUMS.txt`
+
+The Word add-in archive is a hosting bundle, not a Microsoft-validated store
+package. Replace the example HTTPS origin in `manifest.xml` before deployment.
+
+## Verification
+
+Development requirements are Python 3.12, Node.js 22, a stable Rust toolchain,
+the `wasm32-unknown-unknown` target, and Docker for the optional clean Skill One
+gate.
+
+```powershell
+python -m pip install -r requirements-dev.txt
+.\scripts\test_all.ps1
+.\scripts\test_all.ps1 -IncludeDocker
+```
+
+The suite runs Rust unit and conformance tests, rebuilds native and WebAssembly
+outputs, runs browser/worker/capture tests, validates JavaScript syntax, runs
+Skill One determinism/corruption tests, and optionally verifies Skill One in a
+clean Python container.
+
+For visual review, convert a generated DOCX to PDF and rasterize only the PDF
+pages into images. Never capture the desktop or an application window. A human
+release tester must separately open release candidates in Microsoft Word and
+check Hebrew headings, mixed BiDi text, equations, blockquotes, lists, tables,
+and clipboard paste behavior.
+
+## Repository layout
+
+```text
+products/
+  chrome-extension/  Manifest V3 extension and packaged WebAssembly
+  clipboard-helper/  Windows installer and Word-native clipboard helper
+  skill-one/          Installable provider-neutral AI skill
+  word-addin/         Microsoft Word AI task-pane add-in
+shared/
+  rust/md2docx-core/  Canonical Markdown compiler shared by three products
+tests/                Cross-product conformance and regression suites
+scripts/              Build, verification, and release packaging
+docs/                 Formatting contract and product roadmap
+```
+
+## Production checklist
+
+- [x] Local-only canonical conversion architecture.
+- [x] Organized product and shared-core repository structure.
+- [x] Locked Rust and development Python dependencies.
+- [x] Automated Rust, WebAssembly, browser, Skill One, and Docker gates.
+- [x] Credential-literal scanning in CI.
+- [x] Deterministic release packaging with SHA-256 checksums.
+- [x] Privacy, security, contribution, licensing, and third-party notices.
+- [ ] Chrome Web Store validation and signed publication.
+- [ ] Clipboard helper clean-machine and Microsoft Word acceptance test.
+- [ ] Word add-in hosted, provider, Microsoft Word, and manifest validation.
+- [ ] Signed native Windows release artifacts.
+
+See the live [product roadmap](docs/ROADMAP.md) for the remaining external
+release gates.
+
+## License and policies
+
+MIT licensed. See [third-party notices](THIRD_PARTY_NOTICES.md),
+[privacy](PRIVACY.md), [security](SECURITY.md), and
+[contributing](CONTRIBUTING.md).

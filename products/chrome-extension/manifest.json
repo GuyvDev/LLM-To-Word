@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "md2docx — Markdown to Word",
+  "version": "1.3.4",
+  "description": "Capture visible output from major LLM chats and convert it locally to a native Word .docx.",
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "downloads",
+    "clipboardWrite"
+  ],
+
+  "host_permissions": [
+    "https://github.com/*",
+    "https://hackmd.io/*"
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/*/blob/*"],
+      "js": ["content/github.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://hackmd.io/*"],
+      "js": ["content/hackmd.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

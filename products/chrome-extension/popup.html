@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>md2docx</title>
+  <style>
+    *{box-sizing:border-box}body{width:370px;margin:0;font:14px system-ui,sans-serif;color:#172033;background:#f7f9fc}.app{padding:16px}h1{font-size:19px;margin:0 0 4px}p{color:#526075;font-size:12px;margin:0 0 13px}.source{padding:11px;border:1px solid #d7dfeb;border-radius:9px;background:#fff}label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}select,textarea,button{width:100%;font:inherit;border-radius:7px}select,textarea{border:1px solid #b9c7da;background:#fff;padding:8px}textarea{height:180px;margin-top:11px;resize:vertical;line-height:1.4}button{border:0;padding:10px;margin-top:9px;background:#1e40af;color:#fff;font-weight:700;cursor:pointer}button.secondary{background:#e5edfa;color:#173b74}button:disabled{opacity:.55;cursor:wait}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions button{height:100%}.hint{display:block;color:#667085;font-size:11px;line-height:1.35;margin-top:6px}.status{min-height:18px;margin-top:8px;font-size:12px}.status.error{color:#b42318}.status.success{color:#067647}footer{padding:0 16px 14px;font-size:11px;color:#526075}a{color:#1e40af}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>LLM response → Word</h1>
+    <p>Capture the latest visible answer or paste Markdown. Conversion stays in this extension.</p>
+    <section class="source">
+      <label for="llmSource">Response source</label>
+      <select id="llmSource">
+        <option value="auto">Auto-detect LLM</option>
+        <option value="selection">Selected page content</option>
+        <option value="chatgpt">ChatGPT</option>
+        <option value="claude">Claude</option>
+        <option value="gemini">Gemini</option>
+        <option value="copilot">Microsoft Copilot</option>
+        <option value="grok">Grok</option>
+        <option value="perplexity">Perplexity</option>
+        <option value="deepseek">DeepSeek</option>
+        <option value="generic">Generic LLM page</option>
+      </select>
+      <button id="captureBtn" class="secondary">Capture latest response</button>
+      <small class="hint">No prompt or formatting guide is sent to the LLM. The extension reads the active page only after this click.</small>
+    </section>
+    <textarea id="mdInput" placeholder="# Captured response&#10;&#10;You can review or edit it here before creating Word…"></textarea>
+    <div class="actions">
+      <button id="convertBtn">Download .docx</button>
+      <button id="copyBtn" class="secondary">Copy formatted</button>
+    </div>
+    <div class="status" id="status"></div>
+  </main>
+  <footer><a href="https://github.com/GuyvDev/LLM-To-Word" target="_blank">Source code</a> · local conversion · MIT</footer>
+  <script src="popup.js"></script>
+</body>
+</html>

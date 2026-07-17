@@ -1,4 +1,0 @@
-# Reproducible core runtime dependencies for Python 3.12.
-python-docx==1.2.0
-lxml==6.1.1
-latex2mathml==3.81.0

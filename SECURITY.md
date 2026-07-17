@@ -1,5 +1,33 @@
 # Security policy
 
-Please do not open public issues for suspected vulnerabilities or exposed data. Contact the repository owner privately through GitHub security reporting when enabled. Include reproduction steps, affected files, and impact.
+## Supported versions
 
-Do not include real credentials or private documents in reports.
+Until the first signed public release, security fixes are applied to the latest
+commit on `main`. Older source snapshots and unsigned development archives are
+not supported release channels.
+
+## Reporting a vulnerability
+
+Use GitHub private vulnerability reporting for this repository when available.
+Do not open a public issue for a suspected vulnerability, exposed credential,
+or private document.
+
+Include:
+
+- The affected product and version or commit.
+- Reproduction steps and the expected security boundary.
+- Impact and any known prerequisites.
+- A minimal sanitized proof of concept.
+
+Never include real API keys, credentials, private documents, desktop captures,
+or unrelated personal data. The maintainer will acknowledge the report,
+investigate it, and coordinate disclosure and remediation through the private
+report.
+
+## Product boundaries
+
+- Chrome extension, clipboard helper, and Skill One conversion is local.
+- The Word add-in sends content only to the provider selected by the user. Its
+  direct browser-key mode is for personal testing, not managed deployment.
+- Release users should verify the SHA-256 checksum manifest and use signed
+  artifacts when they become available.

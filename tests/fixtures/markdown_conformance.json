@@ -1,0 +1,101 @@
+[
+  {
+    "id": "commonmark-core-punctuation",
+    "source": "commonmark",
+    "markdown": "# Heading: [brackets] (parentheses) — ‘quotes’!\n\nParagraph with *italic*, **bold**, `code([{}])`, and \\*escaped stars\\*.\n\n[Link label?!](https://example.com/a_(b)?q=1&x=2) and ![Alt (x)!](https://example.com/image.png).\n\n> Quote: {curly}, [square], (round), <angle>, em—dash; colon: semicolon; ellipsis…\n\n1. First item\n2. Second item\n\n---",
+    "html_contains": ["<h1 dir=\"ltr\"", "<em>italic</em>", "<strong>bold</strong>", "<img src=\"https://example.com/image.png\"", "<blockquote dir=\"ltr\"", "<ol dir=\"ltr\"", "<hr"],
+    "html_not_contains": ["<table>", "<del>"],
+    "docx_contains": ["Heading1", "<w:i/>", "<w:b/>", "code([{}])", "https://example.com/a_(b)?q=1&amp;x=2", "[Image: Alt (x)!]", "https://example.com/image.png", "<w:numPr>", "[brackets]", "(parentheses)"],
+    "docx_not_contains": ["<w:tbl>", "<w:strike/>"]
+  },
+  {
+    "id": "commonmark-keeps-gfm-markers-literal",
+    "source": "commonmark",
+    "markdown": "~~not deleted~~\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n- [x] marker remains text",
+    "html_contains": ["~~not deleted~~", "| A | B |", "[x] marker remains text"],
+    "html_not_contains": ["<del>", "<table>", "type=\"checkbox\""],
+    "docx_contains": ["~~not deleted~~", "| A | B |", "[x] marker remains text"],
+    "docx_not_contains": ["<w:strike/>", "<w:tbl>", "☑"]
+  },
+  {
+    "id": "gfm-tables-tasks-strike-autolink",
+    "source": "gfm",
+    "markdown": "## GFM: tables, tasks & autolinks\n\n- [x] done!\n- [ ] pending?\n\n~~removed (old)~~ and https://example.org/path?q=[x].\n\n| Expression | Result |\n|:---|---:|\n| `a \\| b` | **true!** |",
+    "html_contains": ["<h2 dir=\"ltr\"", "<del>removed (old)</del>", "<table dir=\"ltr\"", "type=\"checkbox\"", "href=\"https://example.org/path?q=%5Bx%5D\""],
+    "html_not_contains": [],
+    "docx_contains": ["Heading2", "☑", "☐", "<w:strike/>", "<w:tbl>", "a | b", "<w:jc w:val=\"center\"/>", "<w:vAlign w:val=\"center\"/>"] ,
+    "docx_not_contains": []
+  },
+  {
+    "id": "github-alert-footnote",
+    "source": "github",
+    "markdown": "> [!NOTE]\n> Alert title: brackets [ok], colon: yes.\n\nFootnote call.[^a]\n\n[^a]: Footnote **body** with punctuation?!",
+    "html_contains": ["markdown-alert", "Footnote", "footnote"],
+    "html_not_contains": [],
+    "docx_contains": ["Note", "Alert title", "[a]", "Footnote", "body", "<w:b/>"] ,
+    "docx_not_contains": []
+  },
+  {
+    "id": "hackmd-extended-inline-and-description",
+    "source": "hackmd",
+    "markdown": "Term [A]\n\n: Definition (B): details!\n\n==highlight== ++inserted++ __underlined__ H~2~O 2^10^ ||spoiler||\n\nInline math $\\frac{a+b}{c-d}$ and $\\sqrt{x_1}$.",
+    "html_contains": ["<dl dir=\"ltr\"", "<mark>highlight</mark>", "<ins>inserted</ins>", "<u>underlined</u>", "<sub>2</sub>", "<sup>10</sup>"],
+    "html_not_contains": [],
+    "docx_contains": ["Term [A]", "Definition (B)", "<w:highlight w:val=\"yellow\"/>", "<w:u w:val=\"single\"/>", "<w:vertAlign w:val=\"subscript\"/>", "<w:vertAlign w:val=\"superscript\"/>", "<m:f>", "<m:rad>"] ,
+    "docx_not_contains": ["\\frac", "\\sqrt"]
+  },
+  {
+    "id": "llm-hebrew-arabic-bidi-and-math",
+    "source": "llm",
+    "markdown": "# בדיקה: [עברית] (English) — العربية!\n\nטקסט מעורב: function(x) = $\\theta_{t+1} + \\alpha$, מחיר 12.5%, וסוגריים {A[0]}.\n\n$$\n\\left(\\frac{x_1+x_2}{2}\\right)^2 \\leq \\sqrt{y}\n$$\n\n| מדד | Value (avg.) |\n|---|---:|\n| דיוק | 94.7% |",
+    "html_contains": ["dir=\"rtl\"", "<h1 dir=\"rtl\"", "<table dir=\"rtl\" style="],
+    "html_not_contains": [],
+    "docx_contains": ["<w:bidi/>", "<w:rtl/>", "<w:bidiVisual/>", "<m:f>", "<m:sSup>", "≤", "<m:rad>", "[עברית]", "(English)", "{A[0]}"] ,
+    "docx_not_contains": ["\\theta", "\\alpha", "\\frac", "\\sqrt", ">$$</w:t>"]
+  },
+  {
+    "id": "fences-info-and-literal-punctuation",
+    "source": "gfm",
+    "markdown": "~~~bash extra=\"value\"\nprintf '%s\\n' \"[(a+b) * {c-d}] $HOME\"\n# literal **not bold** and `not inline`\n~~~\n\n````markdown\n```js\nconst x = {a: [1, 2]};\n```\n````",
+    "html_contains": ["language-bash", "language-markdown", "**not bold**", "const x = {a: [1, 2]};"],
+    "html_not_contains": ["<strong>not bold</strong>"],
+    "docx_contains": ["bash", "markdown", "[(a+b) * {c-d}] $HOME", "**not bold**", "const x = {a: [1, 2]};", "Courier New"],
+    "docx_not_contains": []
+  },
+  {
+    "id": "xml-unicode-and-bracket-safety",
+    "source": "llm",
+    "markdown": "XML punctuation: 5 < 7 & 9 > 3; quotes: \"double\" 'single' “curly” ‘single’; slash / and backslash \\; brackets () [] {} （）【】「」; symbols © ® ™ € ₪ ± × ÷ ≠ ≤ ≥ → ← ↔; emoji 😀; combining é; Hebrew ״גרשיים״ ׳ ־ ׃; Arabic «نص» ، ؛ ؟.\n\n`<tag attr=\"[x]&y\">`",
+    "html_contains": ["5 &lt; 7 &amp; 9 &gt; 3", "&lt;tag attr=&quot;[x]&amp;y&quot;&gt;</code>", "font-family:'Courier New'", "（）【】「」", "😀", "״גרשיים״ ׳ ־ ׃", "«نص» ، ؛ ؟"],
+    "html_not_contains": ["<tag attr="],
+    "docx_contains": ["5 &lt; 7 &amp; 9 &gt; 3", "&quot;double&quot;", "（）【】「」", "😀", "© ® ™ € ₪ ± × ÷ ≠ ≤ ≥ → ← ↔", "״גרשיים״ ׳ ־ ׃", "«نص» ، ؛ ؟", "<w:bidi/>", "&lt;tag attr=&quot;[x]&amp;y&quot;&gt;"],
+    "docx_not_contains": ["<tag attr=\"[x]&y\">"]
+  },
+  {
+    "id": "word-stable-mixed-bidi-spacing",
+    "source": "llm",
+    "markdown": "### דוגמה 1 — עברית + English + 18%\n\nברבעון הראשון של 2026 החברה הגדילה ב־18% לעומת Q4 2025.\n\nהמדד היה Customer Acquisition Cost (CAC), שירד מ־$42 ל־$31.\n\n# ניתוח אלגוריתם Gradient Descent\n\n## טבלה מורכבת עם Markdown\n\n# השוואת פתרונות AI",
+    "html_contains": ["<h3 dir=\"rtl\"", "דוגמה 1 — עברית + English + 18%", "של 2026 החברה", "Customer Acquisition Cost (CAC), שירד", "אלגוריתם Gradient Descent", "עם Markdown", "פתרונות AI"],
+    "html_not_contains": [" "],
+    "docx_contains": ["דוגמה ", "1 — ", "של ", "2026 ", "18% ", "היה ", "(CAC), ", "$42 ", "אלגוריתם ", "עם ", "פתרונות "],
+    "docx_not_contains": ["דוגמה </w:t>", "של </w:t>", " 2026</w:t>", "אלגוריתם </w:t>", "פתרונות </w:t>"]
+  },
+  {
+    "id": "malformed-markup-recovers",
+    "source": "llm",
+    "markdown": "Unclosed **bold and *italic.\n\nBroken [link](https://example.com/(a).\n\nUnmatched brackets: [[[ ((( {{{ ] ) }.\n\nUnclosed math $x_{1 and display $$ y^2.\n\n```text\nunclosed fence with <xml> & [brackets]",
+    "html_contains": ["Unclosed", "Broken", "Unmatched brackets", "unclosed fence"],
+    "html_not_contains": ["<xml>"],
+    "docx_contains": ["Unclosed", "Broken", "Unmatched brackets", "unclosed fence", "&lt;xml&gt;", "[brackets]"],
+    "docx_not_contains": ["<xml>"]
+  },
+  {
+    "id": "empty-and-whitespace",
+    "source": "gfm",
+    "markdown": "\ufeff  \n\t\n",
+    "html_contains": ["dir=\"ltr\""],
+    "html_not_contains": ["<table>", "<h1>"],
+    "docx_contains": ["<w:document", "<w:sectPr>"],
+    "docx_not_contains": ["<w:tbl>", "<w:pStyle"]
+  }
+]

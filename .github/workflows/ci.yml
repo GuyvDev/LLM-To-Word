@@ -20,22 +20,94 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -r requirements.txt -r api/requirements.txt pip-audit
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
       - run: python -m unittest discover -s tests -v
+      - name: Validate and package Skill One
+        run: |
+          python -m py_compile products/skill-one/skill-one/scripts/docx_brain.py
+          python products/skill-one/package_skill.py --output "$RUNNER_TEMP/skill-one.zip"
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+      - name: Lint Rust
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace --all-targets
+      - name: Rebuild and verify packaged WebAssembly core
+        run: |
+          cargo build --release --package md2docx-core --lib --target wasm32-unknown-unknown
+          cargo install wasm-bindgen-cli --version 0.2.126 --locked
+          wasm-bindgen --target no-modules --out-dir products/chrome-extension/core --out-name md2docx_core target/wasm32-unknown-unknown/release/md2docx_core.wasm
+          git diff --exit-code -- products/chrome-extension/core
+      - name: Run browser, worker, capture, and WASM conformance tests
+        run: node --test tests/test_*.js
       - name: Validate browser and add-in scripts
         run: |
-          node --check web/app.js
-          node --check extension/config.js
-          node --check extension/background.js
-          node --check extension/popup.js
-          node --check extension/content/github.js
-          node --check extension/content/hackmd.js
-          node --check office-addin/taskpane.js
-          python -c "import json; json.load(open('extension/manifest.json'))"
-          python -c "import xml.etree.ElementTree as E; E.parse('office-addin/manifest.xml')"
-      - run: pip-audit --strict
+          node --check products/chrome-extension/background.js
+          node --check products/chrome-extension/md2docx.js
+          node --check products/chrome-extension/popup.js
+          node --check products/chrome-extension/content/github.js
+          node --check products/chrome-extension/content/hackmd.js
+          node --check products/chrome-extension/content/llm-capture.js
+          node --check products/chrome-extension/core/md2docx_core.js
+          node --check products/word-addin/taskpane.js
+          python -c "import json; json.load(open('products/chrome-extension/manifest.json'))"
+          python -c "import xml.etree.ElementTree as E; E.parse('products/word-addin/manifest.xml')"
       - name: Block credential literals
+        run: python scripts/check_credentials.py
+      - name: Verify Skill One in clean Python container
         run: |
-          ! git grep -n -I -E 'sk_(live|test)_[A-Za-z0-9_-]+|whsec_[A-Za-z0-9_-]+|ghp_[A-Za-z0-9_-]+|-----BEGIN.*PRIVATE KEY-----'
-      - run: docker build --tag md2docx:${{ github.sha }} .
+          docker build -f products/skill-one/Dockerfile.test --tag skill-one:${{ github.sha }} .
+          docker run --rm skill-one:${{ github.sha }}
+
+  windows-release-packages:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Build and package Windows/browser products
+        shell: pwsh
+        run: .\scripts\package_release.ps1
+      - name: Verify release bundle contents
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $expected = @(
+            "chrome-extension.zip",
+            "clipboard-helper-windows-x64.zip",
+            "skill-one.zip",
+            "word-addin-host.zip",
+            "SHA256SUMS.txt"
+          )
+          foreach ($name in $expected) {
+            if (-not (Test-Path -LiteralPath (Join-Path "dist/releases" $name))) {
+              throw "Missing release artifact: $name"
+            }
+          }
+          $requiredEntries = @{
+            "chrome-extension.zip" = "manifest.json"
+            "clipboard-helper-windows-x64.zip" = "md2docx-core.exe"
+            "skill-one.zip" = "skill-one/SKILL.md"
+            "word-addin-host.zip" = "manifest.xml"
+          }
+          foreach ($archiveName in $requiredEntries.Keys) {
+            $archive = [IO.Compression.ZipFile]::OpenRead((Resolve-Path (Join-Path "dist/releases" $archiveName)))
+            try {
+              if ($requiredEntries[$archiveName] -notin $archive.Entries.FullName) {
+                throw "$archiveName is missing $($requiredEntries[$archiveName])"
+              }
+            } finally {
+              $archive.Dispose()
+            }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-release-candidates-${{ github.sha }}
+          path: dist/releases/
+          retention-days: 7
