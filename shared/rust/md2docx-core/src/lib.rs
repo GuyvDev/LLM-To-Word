@@ -94,17 +94,99 @@ pub fn parser_options(profile: DialectProfile) -> Options<'static> {
 }
 
 pub fn compile_docx(markdown: &str, options: &CompileOptions) -> Result<Vec<u8>, String> {
-    docx::compile(markdown, options)
+    docx::compile(&normalize_markdown(markdown), options)
 }
 
 pub fn compile_rich_html(markdown: &str, options: &CompileOptions) -> String {
+    let markdown = normalize_markdown(markdown);
     let mut parser = parser_options(options.effective_profile());
     // LLM status lines and similar single-newline content must remain separate
     // when pasted into Word instead of collapsing into one long sentence.
     parser.render.hardbreaks = true;
-    let html = markdown_to_html(markdown, &parser);
+    let html = markdown_to_html(&markdown, &parser);
     let html = add_rtl_table_direction(&html);
     clipboard_html::render(&html)
+}
+
+fn normalize_markdown(markdown: &str) -> String {
+    let characters = markdown.chars().collect::<Vec<_>>();
+    let mut output = String::with_capacity(markdown.len());
+    let mut index = 0;
+    while index < characters.len() {
+        let character = characters[index];
+        if character == '—' {
+            output.push('-');
+            index += 1;
+            continue;
+        }
+        if matches!(character as u32, 0x200e | 0x200f | 0x202a..=0x202e | 0x2066..=0x2069) {
+            index += 1;
+            continue;
+        }
+        if matches!(character as u32, 0x0590..=0x05ff)
+            && characters.get(index + 1) == Some(&'-')
+            && characters
+                .get(index + 2)
+                .is_some_and(|next| next.is_ascii_alphabetic())
+        {
+            output.push(character);
+            output.push('־');
+            index += 2;
+            continue;
+        }
+        output.push(character);
+        index += 1;
+    }
+    mirror_rtl_text_arrows(&output)
+}
+
+fn mirror_rtl_text_arrows(markdown: &str) -> String {
+    let mut output = String::with_capacity(markdown.len());
+    let mut fenced = false;
+    for line in markdown.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        let fence_line = trimmed.starts_with("```") || trimmed.starts_with("~~~");
+        if fence_line {
+            fenced = !fenced;
+            output.push_str(line);
+            continue;
+        }
+        if fenced || !line.chars().any(|c| matches!(c as u32, 0x0590..=0x08ff)) {
+            output.push_str(line);
+            continue;
+        }
+        let mut inline_code = false;
+        let mut inline_math = false;
+        let mut escaped = false;
+        for character in line.chars() {
+            if escaped {
+                output.push(character);
+                escaped = false;
+                continue;
+            }
+            if character == '\\' {
+                output.push(character);
+                escaped = true;
+                continue;
+            }
+            if character == '`' && !inline_math {
+                inline_code = !inline_code;
+                output.push(character);
+                continue;
+            }
+            if character == '$' && !inline_code {
+                inline_math = !inline_math;
+                output.push(character);
+                continue;
+            }
+            output.push(match character {
+                '→' if !inline_code && !inline_math => '←',
+                '←' if !inline_code && !inline_math => '→',
+                _ => character,
+            });
+        }
+    }
+    output
 }
 
 fn add_rtl_table_direction(html: &str) -> String {
@@ -187,5 +269,26 @@ mod tests {
         let html = compile_rich_html(source, &CompileOptions::default());
         assert!(html.contains("<table dir=\"rtl\" style="));
         assert!(html.contains("language-bash"));
+    }
+
+    #[test]
+    fn shared_normalization_stabilizes_word_punctuation() {
+        assert_eq!(
+            normalize_markdown("ה-Roadmap — ו-Compliance \u{2066}safe\u{2069}"),
+            "ה־Roadmap - ו־Compliance safe"
+        );
+    }
+
+    #[test]
+    fn rtl_prose_arrows_are_mirrored_but_code_and_math_are_not() {
+        let source =
+            "רצף: תל אביב → גוש דן\n\nעברית $a → b$ ו־`x → y`\n\n```text\nעברית → code\n```";
+        let normalized = normalize_markdown(source);
+        assert!(normalized.contains("תל אביב ← גוש דן"));
+        assert!(normalized.contains("$a → b$"));
+        assert!(normalized.contains("`x → y`"));
+        assert!(normalized.contains("עברית → code"));
+        let html = compile_rich_html(source, &CompileOptions::default());
+        assert!(html.contains("תל אביב ← גוש דן"));
     }
 }

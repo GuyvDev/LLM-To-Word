@@ -8,6 +8,7 @@ commands before submitting:
 .\scripts\test_all.ps1 -IncludeDocker
 .\scripts\package_release.ps1
 python scripts/check_credentials.py
+python scripts/check_repository.py
 ```
 
 Do not commit credentials, personal documents, generated DOCX/PDF files, debug

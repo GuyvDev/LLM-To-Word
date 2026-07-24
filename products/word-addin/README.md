@@ -2,7 +2,7 @@
 
 ## Status
 
-Beta and not end-to-end tested. The task pane, provider adapters, local
+Implemented but not end-to-end tested. The task pane, provider adapters, local
 conversion path, JavaScript syntax, and manifest XML parse checks are
 implemented. It has not yet passed a hosted deployment test, live provider
 tests, Microsoft Word desktop/online tests, or Microsoft's add-in validator.

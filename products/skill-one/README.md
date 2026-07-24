@@ -1,43 +1,40 @@
 # Skill One
 
-Provider-neutral AI skill for creating deterministic, self-validated Word
-documents. The installable package is in `skill-one/`; product planning,
-packaging, and installation material stays beside it so the uploaded skill
-contains only runtime resources.
+Provider-neutral AI skill that preserves or authors Markdown, compiles it with
+the repository's canonical `md2docx-core`, validates the result, and requires
+an all-page visual release gate.
 
 ## Status
 
-Verified. The compiler, deterministic package, official skill structure,
-Docker smoke test, OOXML validator, and PDF page-image benchmark pass. The
-installed skill has been exercised locally. Provider marketplace publication
-is optional and is not required for direct installation.
+Verified in web use on Windows x64 and Linux x64. The Python components launch
+and validate the shared compiler; they contain no separate formatting or OOXML
+renderer.
 
 ## Features
 
-- Dependency-free Python 3 DocSpec-to-DOCX compiler.
-- Deterministic ZIP/XML packaging and structural self-validation.
-- RTL paragraphs and runs, mixed BiDi spacing, RTL tables, centered cells, and
-  independent list numbering.
-- Native OMML equations, code blocks, links, quotes, headings, and page breaks.
-- Modern Word compatibility settings.
-- Automatic replacement of em dashes with regular hyphens, plus validator
-  enforcement.
-- Privacy-safe visual audit instructions based only on PDF page images.
+- Same CommonMark/GFM/LLM parser and DOCX renderer as Chrome and clipboard.
+- Native RTL/BiDi, RTL tables, centered cells, OMML equations, code, links,
+  lists, headings, and Markdown extensions from the shared core.
+- Shared removal of Unicode BiDi controls and replacement of em dashes.
+- Local execution without an account or credential.
+- Mandatory DOCX-to-PDF rendering, all-page raster review, and visual receipt.
+- Default lossless conversion mode with input SHA-256 reporting.
+- Verified compiler provenance instead of trusting generic DOCX validity.
+- Hash-approved bundled runtimes; environment variables and PATH cannot replace
+  the canonical executable.
+- Runtime compiler doctor, Markdown preflight, feature-coverage validation,
+  semantic OOXML review, extracted-text fidelity, and deterministic replay.
+- Byte-identical Windows/Linux DOCX output, enforced by a Docker parity gate.
+- Hash and page-count validation for the exact DOCX, PDF, and reviewed images.
 
 ## Product files
 
 - [Implementation plan](PLAN.md)
 - [Installation and packaging](INSTALL.md)
-- `skill-one/scripts/docx_brain.py` - dependency-free DocSpec-to-DOCX compiler
-- `skill-one/references/` - model-facing schema and provider adapters
+- `skill-one/scripts/docx_brain.py` - native-core launcher and validator
+- `skill-one/bin/` - native builds of the shared Rust core
+- `skill-one/assets/runtime-manifest.json` - approved runtime hashes
+- `skill-one/assets/icon.svg` - published skill icon
+- `skill-one/references/document-design.md` - model-facing Markdown guide
+- `skill-one/scripts/visual_gate.py` - mandatory visual receipt validator
 - `package_skill.py` - deterministic upload ZIP builder
-
-## Completion checklist
-
-- [x] DocSpec contract and provider adapters.
-- [x] Compiler and deterministic package output.
-- [x] OOXML, relationship, RTL, table, equation, numbering, and corruption
-  validation.
-- [x] Official skill validator and clean Python Docker verification.
-- [x] Hebrew/mixed-BiDi PDF page-image benchmark.
-- [ ] Optional publication in provider-specific skill marketplaces.

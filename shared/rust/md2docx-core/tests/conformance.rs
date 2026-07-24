@@ -80,6 +80,38 @@ fn validate_xml(value: &str) {
     }
 }
 
+fn assert_only_balanced_compiler_bidi_controls(value: &str) {
+    let mut isolate_depth = 0usize;
+    for character in value.chars() {
+        match character {
+            '\u{2066}' => {
+                assert_eq!(isolate_depth, 0, "nested LRI in generated OOXML");
+                isolate_depth += 1;
+            }
+            '\u{2069}' => {
+                assert_eq!(isolate_depth, 1, "unmatched PDI in generated OOXML");
+                isolate_depth -= 1;
+            }
+            '\u{200e}'
+            | '\u{200f}'
+            | '\u{202a}'
+            | '\u{202b}'
+            | '\u{202c}'
+            | '\u{202d}'
+            | '\u{202e}'
+            | '\u{2067}'
+            | '\u{2068}' => {
+                panic!(
+                    "unsafe BiDi control U+{:04X} in generated OOXML",
+                    character as u32
+                );
+            }
+            _ => {}
+        }
+    }
+    assert_eq!(isolate_depth, 0, "unclosed LRI in generated OOXML");
+}
+
 #[test]
 fn hebrew_benchmark_has_independent_download_and_clipboard_contracts() {
     let markdown = include_str!("../../../../tests/fixtures/hebrew_experiment_benchmark.md");
@@ -108,6 +140,77 @@ fn hebrew_benchmark_has_independent_download_and_clipboard_contracts() {
     for forbidden in [r"\theta", r"\alpha", r"\nabla", r"\frac", "data-math-style"] {
         assert!(!html.contains(forbidden), "clipboard leaked {forbidden:?}");
     }
+}
+
+#[test]
+fn spotwize_mixed_bidi_regression_uses_directional_runs_and_mirrored_arrows() {
+    let markdown = include_str!("../../../../tests/fixtures/spotwize_bidi_regression.md");
+    let options = options("llm");
+    let bytes = compile_docx(markdown, &options).expect("Spotwize regression DOCX compiles");
+    let (document, _, _) = package_xml(&bytes);
+
+    for expected in [
+        "Spotwize",
+        "תקציר מנהלים",
+        "Roadmap",
+        "עקרונות",
+        "Density before geography",
+    ] {
+        assert!(document.contains(expected), "DOCX missing {expected:?}");
+    }
+    assert!(document.contains("<w:bidi/>"));
+    assert!(document.contains("<w:rtl/>"));
+    assert!(document.contains("<w:rtl w:val=\"0\"/>"));
+    assert!(document.contains("תל אביב ← גוש דן ← ערים נבחרות בישראל"));
+    assert!(!document.contains('→'));
+    assert_only_balanced_compiler_bidi_controls(&document);
+
+    let html = compile_rich_html(markdown, &options);
+    assert!(html.contains("<h2 dir=\"rtl\""));
+    assert!(html.contains("תל אביב ← גוש דן ← ערים נבחרות בישראל"));
+    assert!(!html.contains('→'));
+}
+
+#[test]
+fn nested_ltr_brackets_use_a_visual_ltr_run_in_rtl_paragraphs() {
+    let markdown = "המסקנה: השילוב בין עברית, English, מספרים 12.5%, וסוגריים {A[0]} נשאר קריא.";
+    let docx = compile_docx(markdown, &options("llm")).expect("nested brackets compile");
+    let (document, _, _) = package_xml(&docx);
+    assert!(document.contains("<w:bdo w:val=\"ltr\">"));
+    assert!(document.contains(">{</w:t>"));
+    assert!(document.contains(">A</w:t>"));
+    assert!(document.contains(">[</w:t>"));
+    assert!(document.contains(">0</w:t>"));
+    assert!(document.contains(">]</w:t>"));
+    assert!(document.contains(">}</w:t>"));
+    assert!(!document.contains("\u{2066}{A[0]}\u{2069}"));
+    assert!(document.contains("<w:rtl w:val=\"0\"/>"));
+    assert!(!document.contains("<w:dir"));
+    assert_only_balanced_compiler_bidi_controls(&document);
+}
+
+#[test]
+fn exact_rtl_status_and_punctuation_regression_uses_simple_visual_brackets() {
+    let markdown =
+        "# סטטוס: [פעיל] (Beta).\n\n# {A[0]} נשאר קריא.\n\n# השילוב בין עברית, English, מספרים.";
+    let docx = compile_docx(markdown, &options("llm")).expect("exact regression compiles");
+    let (document, _, _) = package_xml(&docx);
+
+    assert!(document.contains("<w:bdo w:val=\"ltr\">"));
+    assert!(document.contains("[פעיל]"));
+    assert!(document.contains("\u{2066}(Beta)\u{2069}"));
+    assert!(document.contains(">.</w:t>"));
+    assert!(document.contains(">{</w:t>"));
+    assert!(document.contains(">[</w:t>"));
+    assert!(document.contains(">]</w:t>"));
+    assert!(document.contains(">}</w:t>"));
+    assert!(!document.contains("\u{2066}{A[0]}\u{2069}"));
+    assert!(!document.contains("<w:dir"));
+    assert!(document.contains("\u{2066}English\u{2069}"));
+    assert!(document.contains(">,</w:t>"));
+    assert!(!document.contains("English,,"));
+    assert!(document.find("[פעיל]").unwrap() < document.find("(Beta)").unwrap());
+    assert_only_balanced_compiler_bidi_controls(&document);
 }
 
 #[test]

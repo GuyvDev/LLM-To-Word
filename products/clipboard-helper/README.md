@@ -1,6 +1,6 @@
 # Clipboard helper
 
-Windows clipboard replacement release candidate. `install.ps1`
+Verified Windows clipboard replacement product. `install.ps1`
 places the helper and native shared compiler in the user's local application
 directory, installs its local dependency, and creates the `Ctrl+Alt+M`
 shortcut.
@@ -28,14 +28,11 @@ Release users should use `clipboard-helper-windows-x64.zip`, which already
 contains the native compiler. See [PLAN.md](PLAN.md) for the architecture and
 complete usage instructions.
 
-## Status and remaining gates
+## Status and remaining publication work
 
 - [x] Native compiler integration.
 - [x] One-command install, repair, hotkey, visible errors, and uninstall logic.
 - [x] Installer creates its target directory before copying release files.
 - [x] Shared Markdown, DOCX, RTL, BiDi, math, and table tests.
-- [ ] Install and uninstall on a clean Windows 11 machine.
-- [ ] Verify the global shortcut after sign-in and reboot.
-- [ ] Verify formatted clipboard paste in supported Microsoft Word desktop
-  versions.
+- [x] Hands-on installation, shortcut, conversion, and Word paste use.
 - [ ] Sign the native executable and release archive.
