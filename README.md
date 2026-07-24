@@ -22,45 +22,37 @@ natural Hebrew brackets such as `[פעיל]`, nested LTR syntax such as `{A[0]}`
 sentence-final punctuation, English-adjacent commas, RTL arrows, equations,
 tables, and code.
 
-### 1. Hebrew, English, numbers, punctuation, brackets, and arrows
+## Example 1: Mixed Hebrew and English
 
-**Basic GPT DOCX**
+Numbers, punctuation, brackets, and arrows remain in their logical positions.
 
-![Poor mixed Hebrew and English alignment with displaced punctuation, brackets, numbers, and symbols](docs/images/examples/01-mixed-bidi-before.png)
+| **BEFORE - Basic GPT DOCX** | **AFTER - Shared compiler** |
+|:---:|:---:|
+| <img src="docs/images/examples/01-mixed-bidi-before.png" width="500" alt="Poor mixed Hebrew and English alignment with displaced punctuation, brackets, numbers, and symbols"> | <img src="docs/images/examples/01-mixed-bidi-after.png" width="500" alt="Correct mixed Hebrew and English document showing natural Hebrew brackets, nested LTR syntax, stable punctuation, numbers, and mirrored RTL arrows"> |
 
-**Brain-generated DOCX**
+## Example 2: Native Word equations
 
-![Correct mixed Hebrew and English document showing natural Hebrew brackets, nested LTR syntax, stable punctuation, numbers, and mirrored RTL arrows](docs/images/examples/01-mixed-bidi-after.png)
+LaTeX becomes centered, editable OMML instead of raw equation text.
 
-### 2. Native equations and mathematical symbols
+| **BEFORE - Basic GPT DOCX** | **AFTER - Shared compiler** |
+|:---:|:---:|
+| <img src="docs/images/examples/02-math-symbols-before.png" width="500" alt="Raw LaTeX mixed into Hebrew prose with broken alignment"> | <img src="docs/images/examples/02-math-symbols-after.png" width="500" alt="Native editable Word equations centered inside correctly aligned Hebrew prose"> |
 
-**Basic GPT DOCX**
+## Example 3: RTL tables
 
-![Raw LaTeX mixed into Hebrew prose with broken alignment](docs/images/examples/02-math-symbols-before.png)
+Columns keep their logical order and every cell is styled and centered.
 
-**Brain-generated DOCX**
+| **BEFORE - Basic GPT DOCX** | **AFTER - Shared compiler** |
+|:---:|:---:|
+| <img src="docs/images/examples/03-rtl-table-before.png" width="500" alt="Unformatted Markdown table with confused Hebrew and English column order"> | <img src="docs/images/examples/03-rtl-table-after.png" width="500" alt="Styled RTL Word table with logical columns, centered cells, banding, and stable mixed text"> |
 
-![Native editable Word equations centered inside correctly aligned Hebrew prose](docs/images/examples/02-math-symbols-after.png)
+## Example 4: Professional document styles
 
-### 3. RTL tables and logical column order
+Headings, lists, quotes, code, and spacing form a consistent document hierarchy.
 
-**Basic GPT DOCX**
-
-![Unformatted Markdown table with confused Hebrew and English column order](docs/images/examples/03-rtl-table-before.png)
-
-**Brain-generated DOCX**
-
-![Styled RTL Word table with logical columns, centered cells, banding, and stable mixed text](docs/images/examples/03-rtl-table-after.png)
-
-### 4. Headings, lists, quotes, code, and document rhythm
-
-**Basic GPT DOCX**
-
-![Raw Markdown headings, bullets, emphasis, quote, and code with weak spacing](docs/images/examples/04-document-styles-before.png)
-
-**Brain-generated DOCX**
-
-![Polished Word heading hierarchy, blockquote, RTL list, code block, and compact spacing](docs/images/examples/04-document-styles-after.png)
+| **BEFORE - Basic GPT DOCX** | **AFTER - Shared compiler** |
+|:---:|:---:|
+| <img src="docs/images/examples/04-document-styles-before.png" width="500" alt="Raw Markdown headings, bullets, emphasis, quote, and code with weak spacing"> | <img src="docs/images/examples/04-document-styles-after.png" width="500" alt="Polished Word heading hierarchy, blockquote, RTL list, code block, and compact spacing"> |
 
 Regenerate the gallery with
 `python scripts/generate_readme_examples.py --baseline-docx path\to\gpt-web-output.docx --renderer word`,
