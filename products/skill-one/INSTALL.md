@@ -1,10 +1,50 @@
 # Install Skill One
 
-Skill One is self-contained and needs Python 3 plus its bundled native
-`md2docx-core`. It does not need an API, account, hosted service, or Docker at
-runtime.
+Download the ready-to-upload package:
 
-## Build the upload package
+[`skill-one.zip`](https://github.com/GuyvDev/LLM-To-Word/releases/latest/download/skill-one.zip)
+
+The ZIP contains the instructions, formatting guide, validators, and native
+Windows/Linux compiler. No conversion API, Docker runtime, or AI credential is
+required.
+
+## ChatGPT web
+
+1. Open **Plugins -> Skills -> Create -> Upload from computer**.
+2. Upload `skill-one.zip` and install it.
+3. Ask: `Use Skill One to create a polished Word document from this content.`
+
+Skills availability depends on the ChatGPT plan and workspace settings. See
+OpenAI's [Skills in ChatGPT](https://help.openai.com/en/articles/20001066).
+
+## Claude web
+
+1. Enable **Code execution and file creation**.
+2. Open **Customize -> Skills -> + -> Create skill -> Upload a skill**.
+3. Upload `skill-one.zip`, enable it, and ask:
+   `Use Skill One to create a polished Word document from this content.`
+
+See Anthropic's
+[Use skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude).
+
+## Codex
+
+Paste this prompt into Codex:
+
+```text
+Install Skill One from the latest GitHub Release of
+https://github.com/GuyvDev/LLM-To-Word. Download skill-one.zip and
+SHA256SUMS.txt, verify the checksum, install it as a Codex skill, run its
+doctor check, and tell me when I should start a new session.
+```
+
+Then start a new session and ask:
+
+```text
+Use $skill-one to turn this Markdown into a polished Word document.
+```
+
+## Maintainer packaging
 
 ```powershell
 .\scripts\build_converter_core.ps1
@@ -12,24 +52,5 @@ runtime.
 python products\skill-one\package_skill.py
 ```
 
-## Codex
-
-Copy the complete `products/skill-one/skill-one` directory into the Codex
-skills directory, then start a new session and invoke `$skill-one`.
-
-## Direct local use
-
-```bash
-python products/skill-one/skill-one/scripts/docx_brain.py doctor --json
-python products/skill-one/skill-one/scripts/docx_brain.py preflight input.md --source llm --json
-python products/skill-one/skill-one/scripts/docx_brain.py build input.md output.docx --source llm --report report.json --review-text extracted.txt
-python products/skill-one/skill-one/scripts/docx_brain.py review input.md output.docx --source llm --report verify.json --review-text extracted.txt
-python products/skill-one/skill-one/scripts/visual_gate.py --docx output.docx --pdf output.pdf --pages-dir rendered-pages --report visual-report.json
-```
-
-Use the same Markdown and `--source` value in another product when comparing
-byte-for-byte output. Accept a build only when `valid` and every boolean in
-`checks` are true, then read `extracted.txt`. Render the exact DOCX, inspect
-every rasterized PDF page, and require the visual gate to pass. Use `review`,
-not package-only `validate`, as the machine acceptance command for an existing
-DOCX.
+The deterministic package is written to `dist/skill-one.zip` unless another
+output path is supplied.

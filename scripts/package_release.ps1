@@ -57,7 +57,7 @@ function Compress-StagingDirectory([string]$Stage, [string]$Destination) {
 Push-Location $Root
 try {
     if (-not $SkipBuild) {
-        & (Join-Path $PSScriptRoot "build_converter_core.ps1")
+        & (Join-Path $PSScriptRoot "build_converter_core.ps1") -PreserveSkillRuntime
         if ($LASTEXITCODE -ne 0) { throw "Canonical compiler build failed with exit code $LASTEXITCODE" }
     }
 

@@ -17,16 +17,21 @@ shortcut.
 - Supports safe rerun for repair/upgrade and guarded uninstall.
 - Requires no API, account, Docker runtime, or hosted service.
 
-## Install from source
+## Install with Codex
 
-```powershell
-.\scripts\build_converter_core.ps1
-PowerShell -ExecutionPolicy Bypass -File .\products\clipboard-helper\install.ps1
+Paste this prompt into Codex on the Windows computer:
+
+```text
+Install the clipboard helper from the latest GitHub Release of
+https://github.com/GuyvDev/LLM-To-Word. Download
+clipboard-helper-windows-x64.zip and SHA256SUMS.txt, verify the checksum,
+extract it to a temporary folder, run install.ps1, verify the Ctrl+Alt+M
+shortcut, and remove the temporary download when installation succeeds.
 ```
 
-Release users should use `clipboard-helper-windows-x64.zip`, which already
-contains the native compiler. See [PLAN.md](PLAN.md) for the architecture and
-complete usage instructions.
+Codex will show the commands and ask for approval before downloading or running
+the installer. The release ZIP already contains the native compiler. See
+[PLAN.md](PLAN.md) for the architecture and complete usage instructions.
 
 ## Status and remaining publication work
 

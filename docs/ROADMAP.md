@@ -17,6 +17,7 @@
 - [x] Deterministic Skill One package with structural OOXML validation.
 - [x] Skill One extracted-text review and mandatory all-page visual gate.
 - [x] One-command release packaging with SHA-256 checksums.
+- [x] Version-tagged GitHub Releases after Linux and Windows CI pass.
 - [x] Privacy-safe PDF page-image visual audit workflow.
 - [ ] Complete human Microsoft Word visual regression checks on Windows.
 - [ ] Complete Chrome Web Store and Microsoft add-in validation.
