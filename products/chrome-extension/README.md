@@ -2,10 +2,9 @@
 
 ## Status
 
-Release candidate. Rust, WebAssembly, service-worker, capture, Markdown
+Verified in hands-on use. Rust, WebAssembly, service-worker, capture, Markdown
 conformance, punctuation, RTL, math, DOCX, and clipboard tests pass. Remaining
-release gates are a manual Chrome acceptance test, Chrome Web Store validation,
-signed packaging, and publication.
+release work is Chrome Web Store validation, signed packaging, and publication.
 
 The Chrome extension is self-contained. It can capture the latest visible answer from major LLM chat pages, reconstruct clean Markdown, then either download a DOCX or replace the clipboard with formatted content. Its bundled Rust/WebAssembly compiler runs locally in the Manifest V3 service worker. It does not inject prompts or formatting instructions, call an md2docx API, require Docker, or upload document text.
 

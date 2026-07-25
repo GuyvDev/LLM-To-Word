@@ -16,6 +16,7 @@ build/
 target/
 .venv-win/
 dist/windows/
+/*.zip
 
 # OS
 .DS_Store

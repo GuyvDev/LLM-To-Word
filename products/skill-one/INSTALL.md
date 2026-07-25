@@ -1,40 +1,56 @@
 # Install Skill One
 
-Skill One is local and self-contained. It needs Python 3 but no API, Docker,
-account, hosted service, or third-party Python package.
+Download the ready-to-upload package:
 
-## Build the upload package
+[`skill-one.zip`](https://github.com/GuyvDev/LLM-To-Word/releases/latest/download/skill-one.zip)
 
-From the repository root:
+The ZIP contains the instructions, formatting guide, validators, and native
+Windows/Linux compiler. No conversion API, Docker runtime, or AI credential is
+required.
 
-```bash
-python products/skill-one/package_skill.py
-```
+## ChatGPT web
 
-This creates `products/skill-one/dist/skill-one.zip`. Generated ZIP files are
-ignored by Git.
+1. Open **Plugins -> Skills -> Create -> Upload from computer**.
+2. Upload `skill-one.zip` and install it.
+3. Ask: `Use Skill One to create a polished Word document from this content.`
+
+Skills availability depends on the ChatGPT plan and workspace settings. See
+OpenAI's [Skills in ChatGPT](https://help.openai.com/en/articles/20001066).
+
+## Claude web
+
+1. Enable **Code execution and file creation**.
+2. Open **Customize -> Skills -> + -> Create skill -> Upload a skill**.
+3. Upload `skill-one.zip`, enable it, and ask:
+   `Use Skill One to create a polished Word document from this content.`
+
+See Anthropic's
+[Use skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude).
 
 ## Codex
 
-Copy the `products/skill-one/skill-one` directory into the Codex skills
-directory, then start a new session and invoke `$skill-one`.
+Paste this prompt into Codex:
 
-## Claude
-
-Upload the generated ZIP as a skill when that feature is available in the
-selected Claude product. The session must have Python execution and file output
-enabled. Follow `references/provider-adapters.md` in the package.
-
-## ChatGPT
-
-Create a custom GPT with Code Interpreter enabled. Add `SKILL.md` as its
-instructions and upload the compiler, DocSpec reference, and example as
-knowledge files. ChatGPT must execute the compiler; prompting alone cannot
-guarantee valid OOXML. Follow `references/provider-adapters.md` in the package.
-
-## Direct local use
-
-```bash
-python products/skill-one/skill-one/scripts/docx_brain.py build input.json output.docx --report report.json
-python products/skill-one/skill-one/scripts/docx_brain.py validate output.docx --json
+```text
+Install Skill One from the latest GitHub Release of
+https://github.com/GuyvDev/LLM-To-Word. Download skill-one.zip and
+SHA256SUMS.txt, verify the checksum, install it as a Codex skill, run its
+doctor check, and tell me when I should start a new session.
 ```
+
+Then start a new session and ask:
+
+```text
+Use $skill-one to turn this Markdown into a polished Word document.
+```
+
+## Maintainer packaging
+
+```powershell
+.\scripts\build_converter_core.ps1
+.\scripts\build_linux_core.ps1
+python products\skill-one\package_skill.py
+```
+
+The deterministic package is written to `dist/skill-one.zip` unless another
+output path is supplied.
