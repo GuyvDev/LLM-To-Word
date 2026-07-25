@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param([switch]$SkipTests)
+param(
+    [switch]$SkipTests,
+    [switch]$PreserveSkillRuntime
+)
 
 $ErrorActionPreference = "Stop"
 $Root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
@@ -47,12 +50,18 @@ try {
     Copy-Item -LiteralPath "target\release\md2docx-core-cli.exe" -Destination $NativeCore -Force
     $SkillBin = Join-Path $Root "products\skill-one\skill-one\bin"
     New-Item -ItemType Directory -Path $SkillBin -Force | Out-Null
-    Copy-Item -LiteralPath $NativeCore -Destination (Join-Path $SkillBin "md2docx-core.exe") -Force
+    if (-not $PreserveSkillRuntime) {
+        Copy-Item -LiteralPath $NativeCore -Destination (Join-Path $SkillBin "md2docx-core.exe") -Force
+    }
     Write-Host "Built canonical core:"
     Write-Host "  products\chrome-extension\core\md2docx_core.js"
     Write-Host "  products\chrome-extension\core\md2docx_core_bg.wasm"
     Write-Host "  dist\windows\md2docx-core.exe"
-    Write-Host "  products\skill-one\skill-one\bin\md2docx-core.exe"
+    if (-not $PreserveSkillRuntime) {
+        Write-Host "  products\skill-one\skill-one\bin\md2docx-core.exe"
+    } else {
+        Write-Host "  preserved pinned Skill One runtimes"
+    }
 } finally {
     Pop-Location
 }

@@ -92,15 +92,8 @@ fn assert_only_balanced_compiler_bidi_controls(value: &str) {
                 assert_eq!(isolate_depth, 1, "unmatched PDI in generated OOXML");
                 isolate_depth -= 1;
             }
-            '\u{200e}'
-            | '\u{200f}'
-            | '\u{202a}'
-            | '\u{202b}'
-            | '\u{202c}'
-            | '\u{202d}'
-            | '\u{202e}'
-            | '\u{2067}'
-            | '\u{2068}' => {
+            '\u{200e}' | '\u{200f}' | '\u{202a}' | '\u{202b}' | '\u{202c}' | '\u{202d}'
+            | '\u{202e}' | '\u{2067}' | '\u{2068}' => {
                 panic!(
                     "unsafe BiDi control U+{:04X} in generated OOXML",
                     character as u32

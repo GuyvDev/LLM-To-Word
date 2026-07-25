@@ -1,8 +1,14 @@
 # Skill One
 
-Provider-neutral AI skill that preserves or authors Markdown, compiles it with
-the repository's canonical `md2docx-core`, validates the result, and requires
-an all-page visual release gate.
+The primary LLM to Word product: an installable AI skill for ChatGPT, Claude,
+Codex, and other Agent Skills-compatible tools. It preserves or authors
+Markdown, compiles it with the repository's canonical `md2docx-core`, validates
+the result, and requires an all-page visual release gate.
+
+**[Download the latest `skill-one.zip`](https://github.com/GuyvDev/LLM-To-Word/releases/latest/download/skill-one.zip)**
+
+See the [installation guide](INSTALL.md) for direct ZIP upload in ChatGPT and
+Claude or a one-prompt Codex installation.
 
 ## Status
 
@@ -30,7 +36,7 @@ renderer.
 ## Product files
 
 - [Implementation plan](PLAN.md)
-- [Installation and packaging](INSTALL.md)
+- [Install in ChatGPT, Claude, or Codex](INSTALL.md)
 - `skill-one/scripts/docx_brain.py` - native-core launcher and validator
 - `skill-one/bin/` - native builds of the shared Rust core
 - `skill-one/assets/runtime-manifest.json` - approved runtime hashes

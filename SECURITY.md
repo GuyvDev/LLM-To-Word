@@ -29,5 +29,6 @@ report.
 - Chrome extension, clipboard helper, and Skill One conversion is local.
 - The Word add-in sends content only to the provider selected by the user. Its
   direct browser-key mode is for personal testing, not managed deployment.
-- Release users should verify the SHA-256 checksum manifest and use signed
-  artifacts when they become available.
+- Download release packages from this repository's GitHub Releases and verify
+  them with `SHA256SUMS.txt`. Native Windows packages remain unsigned until the
+  signing release gate is complete.
