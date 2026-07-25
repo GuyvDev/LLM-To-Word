@@ -1,0 +1,9 @@
+FROM rust:1.88.0-bookworm@sha256:4727898c104ecd2e22d780925832502faee9fe4e70581b8572af081370b315a0 AS build
+
+WORKDIR /src
+COPY Cargo.toml Cargo.lock ./
+COPY shared/rust/md2docx-core/ shared/rust/md2docx-core/
+RUN cargo build --locked --release --package md2docx-core --bin md2docx-core-cli
+
+FROM scratch
+COPY --from=build /src/target/release/md2docx-core-cli /md2docx-core-linux-x64

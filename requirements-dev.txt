@@ -1,3 +1,4 @@
 # Development-only dependency used by the official Codex skill validator.
 # Skill One's runtime compiler remains standard-library-only.
+Pillow==11.3.0
 PyYAML==6.0.3

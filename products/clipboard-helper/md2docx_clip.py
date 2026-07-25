@@ -97,7 +97,9 @@ def main() -> None:
         with tempfile.NamedTemporaryFile(suffix=".md", delete=False, mode="w", encoding="utf-8") as f:
             tmp_in = f.name
             f.write(text)
-        subprocess.run([str(CORE_EXE), tmp_in, tmp_out, "clipboard"], check=True, capture_output=True, text=True)
+        # Use the same LLM Markdown profile as Skill One and LLM-page capture,
+        # so identical Markdown produces identical DOCX bytes everywhere.
+        subprocess.run([str(CORE_EXE), tmp_in, tmp_out, "llm"], check=True, capture_output=True, text=True)
 
         # ── Copy rich content to clipboard via Word ──────────────────────────
         print("Copying formatted content to clipboard via Word ...")

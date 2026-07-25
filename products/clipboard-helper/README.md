@@ -1,6 +1,6 @@
 # Clipboard helper
 
-Windows clipboard replacement release candidate. `install.ps1`
+Verified Windows clipboard replacement product. `install.ps1`
 places the helper and native shared compiler in the user's local application
 directory, installs its local dependency, and creates the `Ctrl+Alt+M`
 shortcut.
@@ -17,25 +17,27 @@ shortcut.
 - Supports safe rerun for repair/upgrade and guarded uninstall.
 - Requires no API, account, Docker runtime, or hosted service.
 
-## Install from source
+## Install with Codex
 
-```powershell
-.\scripts\build_converter_core.ps1
-PowerShell -ExecutionPolicy Bypass -File .\products\clipboard-helper\install.ps1
+Paste this prompt into Codex on the Windows computer:
+
+```text
+Install the clipboard helper from the latest GitHub Release of
+https://github.com/GuyvDev/LLM-To-Word. Download
+clipboard-helper-windows-x64.zip and SHA256SUMS.txt, verify the checksum,
+extract it to a temporary folder, run install.ps1, verify the Ctrl+Alt+M
+shortcut, and remove the temporary download when installation succeeds.
 ```
 
-Release users should use `clipboard-helper-windows-x64.zip`, which already
-contains the native compiler. See [PLAN.md](PLAN.md) for the architecture and
-complete usage instructions.
+Codex will show the commands and ask for approval before downloading or running
+the installer. The release ZIP already contains the native compiler. See
+[PLAN.md](PLAN.md) for the architecture and complete usage instructions.
 
-## Status and remaining gates
+## Status and remaining publication work
 
 - [x] Native compiler integration.
 - [x] One-command install, repair, hotkey, visible errors, and uninstall logic.
 - [x] Installer creates its target directory before copying release files.
 - [x] Shared Markdown, DOCX, RTL, BiDi, math, and table tests.
-- [ ] Install and uninstall on a clean Windows 11 machine.
-- [ ] Verify the global shortcut after sign-in and reboot.
-- [ ] Verify formatted clipboard paste in supported Microsoft Word desktop
-  versions.
+- [x] Hands-on installation, shortcut, conversion, and Word paste use.
 - [ ] Sign the native executable and release archive.
