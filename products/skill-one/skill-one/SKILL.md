@@ -183,4 +183,4 @@ existing DOCX still requires the mandatory visual release gate before delivery.
 ## Provider setup
 
 Read `references/provider-adapters.md` only when installing or configuring the
-skill for Claude or a ChatGPT custom GPT.
+skill for ChatGPT, Claude, or another hosted Agent Skills provider.

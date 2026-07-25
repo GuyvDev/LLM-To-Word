@@ -20,6 +20,11 @@ try {
         if ($parseErrors.Count) { throw "PowerShell syntax failed for $PowerShellScript`: $($parseErrors[0].Message)" }
     }
 
+    & cargo fmt --all -- --check
+    Assert-LastExit "Rust formatting"
+    & cargo clippy --workspace --all-targets -- -D warnings
+    Assert-LastExit "Rust lint"
+
     & (Join-Path $PSScriptRoot "build_converter_core.ps1")
     Assert-LastExit "Canonical core build and Rust tests"
 

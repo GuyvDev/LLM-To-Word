@@ -647,7 +647,9 @@ fn rtl_paragraph_ltr_runs(text: &str, style: InlineStyle, rtl_font: &str) -> Str
 fn is_balanced_ascii_syntax_atom(text: &str) -> bool {
     if !text.is_ascii()
         || text.chars().any(char::is_whitespace)
-        || !text.chars().any(|character| character.is_ascii_alphanumeric())
+        || !text
+            .chars()
+            .any(|character| character.is_ascii_alphanumeric())
         || !text.contains('[')
     {
         return false;
@@ -1017,15 +1019,8 @@ mod tests {
                     assert_eq!(isolate_depth, 1, "unmatched PDI in generated XML: {xml}");
                     isolate_depth -= 1;
                 }
-                '\u{200e}'
-                | '\u{200f}'
-                | '\u{202a}'
-                | '\u{202b}'
-                | '\u{202c}'
-                | '\u{202d}'
-                | '\u{202e}'
-                | '\u{2067}'
-                | '\u{2068}' => {
+                '\u{200e}' | '\u{200f}' | '\u{202a}' | '\u{202b}' | '\u{202c}' | '\u{202d}'
+                | '\u{202e}' | '\u{2067}' | '\u{2068}' => {
                     panic!(
                         "unsafe BiDi control U+{:04X} in generated XML",
                         character as u32
@@ -1324,7 +1319,10 @@ mod tests {
             "{xml}"
         );
         assert!(xml.contains(">.</w:t>"), "{xml}");
-        assert!(!xml.contains(">\u{2066}release_check().\u{2069}</w:t>"), "{xml}");
+        assert!(
+            !xml.contains(">\u{2066}release_check().\u{2069}</w:t>"),
+            "{xml}"
+        );
     }
 
     #[test]
@@ -1364,10 +1362,7 @@ mod tests {
         assert!(mixed.contains(">\u{2066}English\u{2069}</w:t>"), "{mixed}");
         assert!(mixed.contains(">,</w:t>"), "{mixed}");
         assert!(mixed.contains("> מספרים 12.5%, וסוגריים </w:t>"), "{mixed}");
-        assert!(
-            mixed.contains("<w:bdo w:val=\"ltr\">"),
-            "{mixed}"
-        );
+        assert!(mixed.contains("<w:bdo w:val=\"ltr\">"), "{mixed}");
         assert!(!mixed.contains(">\u{2066}{A[0]}\u{2069}</w:t>"), "{mixed}");
         assert!(!mixed.contains("English,,"), "{mixed}");
         assert!(mixed.ends_with("נשאר קריא.</w:t></w:r>"), "{mixed}");
