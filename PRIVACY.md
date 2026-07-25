@@ -6,7 +6,9 @@ conversion service.
 
 The Chrome extension performs capture and DOCX conversion locally. It reads the active page only after the user clicks **Capture latest response**, using Chrome's temporary `activeTab` permission. Captured content is shown for review and is not sent to md2docx or back to the LLM. The extension does not inject prompts or formatting guidance into AI conversations.
 
-The optional Word add-in can send selected text and an instruction directly to an AI provider selected by the user. Provider API keys are held only in memory for the current add-in session. The add-in does not implement provider OAuth; use a server-side OAuth broker for managed OAuth access.
+The untested Word add-in can send selected text and an instruction directly to
+an AI provider selected by the user. Provider keys are held only in memory for
+the current add-in session. The add-in does not implement provider OAuth.
 
 Self-hosters are responsible for publishing privacy information that matches their deployment.
 

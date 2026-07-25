@@ -49,21 +49,40 @@ test("downloaded DOCX renders the Hebrew benchmark with native math and centered
   assert.match(text, /∇/);
   assert.match(text, /<w:bidiVisual\/>/);
   assert.match(text, /<w:jc w:val="center"\/>/);
-  // Ordinary run-edge spaces can be moved or hidden by Word's BiDi layout.
-  // Every language/symbol boundary therefore uses a visible-width NBSP.
-  for (const boundary of [
-    "דוגמה\u00a0</w:t>",
-    "1\u00a0—\u00a0</w:t>",
-    "של\u00a0</w:t>",
-    "2026\u00a0</w:t>",
-    "18%\u00a0</w:t>",
-    "היה\u00a0</w:t>",
-    "Customer Acquisition Cost (CAC),\u00a0</w:t>",
-    "42\u00a0</w:t>",
-    "אלגוריתם\u00a0</w:t>",
-    "עם\u00a0</w:t>",
-    "פתרונות\u00a0</w:t>",
-  ]) assert.ok(text.includes(boundary), `missing Word-stable mixed-BiDi boundary ${boundary}`);
+  // Mixed content must be split into explicit Word RTL/LTR runs. Component
+  // text remains in logical source order while Word controls visual ordering.
+  for (const component of [
+    "\u05d3\u05d5\u05d2\u05de\u05d4",
+    "\u05e2\u05d1\u05e8\u05d9\u05ea",
+    "\u05d0\u05e0\u05d2\u05dc\u05d9\u05ea",
+    "2026",
+    "Customer Acquisition Cost (CAC)",
+    "\u05e9\u05d9\u05e8\u05d3",
+    "\u05d0\u05dc\u05d2\u05d5\u05e8\u05d9\u05ea\u05dd",
+    "Gradient Descent",
+  ]) assert.ok(text.includes(component), `missing mixed-BiDi component ${component}`);
+  assert.match(text, /<w:rtl\/>/);
+  assert.match(text, /<w:rtl w:val="0"\/>/);
+  assert.doesNotMatch(text, /[\u200e\u200f\u202a-\u202e\u2067\u2068]/);
+  assert.equal((text.match(/\u2066/g) || []).length, (text.match(/\u2069/g) || []).length);
+  assert.ok((text.match(/\u2066/g) || []).length > 0);
+});
+
+test("packaged WASM preserves Spotwize RTL order and mirrors prose arrows", () => {
+  const wasm = loadCore();
+  const markdown = fs.readFileSync(path.join(__dirname, "fixtures", "spotwize_bidi_regression.md"), "utf8");
+  const docx = new TextDecoder().decode(wasm.convert_docx(markdown, "llm"));
+  const html = wasm.convert_html(markdown, "llm");
+
+  for (const output of [docx, html]) {
+    assert.match(output, /תקציר מנהלים/);
+    assert.match(output, /Roadmap/);
+    assert.match(output, /תל אביב ← גוש דן ← ערים נבחרות בישראל/);
+    assert.doesNotMatch(output, /→/);
+  }
+  assert.match(docx, /<w:rtl\/>/);
+  assert.match(docx, /<w:rtl w:val="0"\/>/);
+  assert.match(html, /<h2 dir="rtl"/);
 });
 
 test("formatted clipboard renders the Hebrew benchmark as compact Word-ready HTML", () => {

@@ -1,13 +1,16 @@
 # md2docx canonical compiler
 
-This crate is the single conversion brain for Chrome, the Word add-in, and the Windows clipboard product.
+This crate is the single conversion brain for Chrome, Skill One, the Word
+add-in, and the Windows clipboard product.
 
-- Native build: Windows clipboard executable/library.
+- Native build: Windows clipboard executable and Skill One runtime.
 - `wasm32-unknown-unknown`: Chrome extension and Office webview.
 - Inputs include a source/provider hint used to select a Markdown dialect profile automatically.
 - Outputs are DOCX bytes and sanitized rich HTML generated from the same Comrak document tree.
 
-The current JavaScript and Python engines remain compatibility fallbacks until golden fixtures and Microsoft Word acceptance checks pass for this core.
+The Chrome extension and Word add-in retain a JavaScript compatibility fallback
+for environments where WebAssembly cannot initialize. Python entry points only
+launch the native compiler and do not implement a second renderer.
 
 ## Dependency licenses
 

@@ -15,6 +15,7 @@ Run these checks before opening a pull request:
 .\scripts\test_all.ps1 -IncludeDocker
 .\scripts\package_release.ps1
 python scripts/check_credentials.py
+python scripts/check_repository.py
 ```
 
 For automated visual review, convert the generated DOCX to PDF and rasterize

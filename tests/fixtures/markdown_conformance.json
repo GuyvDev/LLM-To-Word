@@ -50,7 +50,7 @@
     "markdown": "# בדיקה: [עברית] (English) — العربية!\n\nטקסט מעורב: function(x) = $\\theta_{t+1} + \\alpha$, מחיר 12.5%, וסוגריים {A[0]}.\n\n$$\n\\left(\\frac{x_1+x_2}{2}\\right)^2 \\leq \\sqrt{y}\n$$\n\n| מדד | Value (avg.) |\n|---|---:|\n| דיוק | 94.7% |",
     "html_contains": ["dir=\"rtl\"", "<h1 dir=\"rtl\"", "<table dir=\"rtl\" style="],
     "html_not_contains": [],
-    "docx_contains": ["<w:bidi/>", "<w:rtl/>", "<w:bidiVisual/>", "<m:f>", "<m:sSup>", "≤", "<m:rad>", "[עברית]", "(English)", "{A[0]}"] ,
+    "docx_contains": ["<w:bidi/>", "<w:rtl/>", "<w:bidiVisual/>", "[עברית]", "<m:f>", "<m:sSup>", "≤", "<m:rad>", "(English)", "<w:bdo w:val=\"ltr\">", ">{</w:t>", ">[</w:t>", ">]</w:t>", ">}</w:t>"] ,
     "docx_not_contains": ["\\theta", "\\alpha", "\\frac", "\\sqrt", ">$$</w:t>"]
   },
   {
@@ -68,17 +68,17 @@
     "markdown": "XML punctuation: 5 < 7 & 9 > 3; quotes: \"double\" 'single' “curly” ‘single’; slash / and backslash \\; brackets () [] {} （）【】「」; symbols © ® ™ € ₪ ± × ÷ ≠ ≤ ≥ → ← ↔; emoji 😀; combining é; Hebrew ״גרשיים״ ׳ ־ ׃; Arabic «نص» ، ؛ ؟.\n\n`<tag attr=\"[x]&y\">`",
     "html_contains": ["5 &lt; 7 &amp; 9 &gt; 3", "&lt;tag attr=&quot;[x]&amp;y&quot;&gt;</code>", "font-family:'Courier New'", "（）【】「」", "😀", "״גרשיים״ ׳ ־ ׃", "«نص» ، ؛ ؟"],
     "html_not_contains": ["<tag attr="],
-    "docx_contains": ["5 &lt; 7 &amp; 9 &gt; 3", "&quot;double&quot;", "（）【】「」", "😀", "© ® ™ € ₪ ± × ÷ ≠ ≤ ≥ → ← ↔", "״גרשיים״ ׳ ־ ׃", "«نص» ، ؛ ؟", "<w:bidi/>", "&lt;tag attr=&quot;[x]&amp;y&quot;&gt;"],
+    "docx_contains": ["5 &lt; 7 &amp; 9 &gt; 3", "&quot;double&quot;", "（）【】「」", "😀", "© ® ™ € ₪ ± × ÷ ≠ ≤ ≥ ← → ↔", "״גרשיים״ ׳ ־ ׃", "«نص» ، ؛ ؟", "<w:bidi/>", "&lt;tag attr=&quot;[x]&amp;y&quot;&gt;"],
     "docx_not_contains": ["<tag attr=\"[x]&y\">"]
   },
   {
     "id": "word-stable-mixed-bidi-spacing",
     "source": "llm",
     "markdown": "### דוגמה 1 — עברית + English + 18%\n\nברבעון הראשון של 2026 החברה הגדילה ב־18% לעומת Q4 2025.\n\nהמדד היה Customer Acquisition Cost (CAC), שירד מ־$42 ל־$31.\n\n# ניתוח אלגוריתם Gradient Descent\n\n## טבלה מורכבת עם Markdown\n\n# השוואת פתרונות AI",
-    "html_contains": ["<h3 dir=\"rtl\"", "דוגמה 1 — עברית + English + 18%", "של 2026 החברה", "Customer Acquisition Cost (CAC), שירד", "אלגוריתם Gradient Descent", "עם Markdown", "פתרונות AI"],
+    "html_contains": ["<h3 dir=\"rtl\"", "דוגמה 1 - עברית + English + 18%", "של 2026 החברה", "Customer Acquisition Cost (CAC), שירד", "אלגוריתם Gradient Descent", "עם Markdown", "פתרונות AI"],
     "html_not_contains": [" "],
-    "docx_contains": ["דוגמה ", "1 — ", "של ", "2026 ", "18% ", "היה ", "(CAC), ", "$42 ", "אלגוריתם ", "עם ", "פתרונות "],
-    "docx_not_contains": ["דוגמה </w:t>", "של </w:t>", " 2026</w:t>", "אלגוריתם </w:t>", "פתרונות </w:t>"]
+    "docx_contains": ["דוגמה", "עברית", "English", "18%", "2026", "Customer Acquisition Cost (CAC)", "אלגוריתם", "Gradient Descent", "Markdown", "פתרונות", "AI", "<w:rtl/>", "<w:rtl w:val=\"0\"/>"],
+    "docx_not_contains": ["—", "\u200e", "\u200f", "\u202a", "\u202b", "\u202c", "\u202d", "\u202e", "\u2067", "\u2068"]
   },
   {
     "id": "malformed-markup-recovers",

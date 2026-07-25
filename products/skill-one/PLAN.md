@@ -2,39 +2,36 @@
 
 ## Product promise
 
-Create the same validated Microsoft Word document from GPT, Claude, or any
-agent that can run Python 3. The product must remain local and self-contained:
-no hosted conversion API, Docker runtime, account, or provider credential.
+Create the same Word document as the Chrome extension and clipboard helper from
+the same Markdown input, then require both machine validation and inspection of
+every rendered page. The runtime is local and self-contained.
 
 ## Architecture
 
-1. The model writes a strict provider-neutral DocSpec JSON document.
-2. The installed skill invokes one dependency-free Python compiler.
-3. The compiler owns all Word-specific behavior: OOXML packaging, RTL runs,
-   mixed-BiDi boundary spacing, OMML equations, tables, styles, and numbering.
-4. The compiler validates the generated package before returning it.
-5. GPT and Claude distribute different instruction adapters but execute the
-   same script and schema; output is deterministic for identical DocSpec input.
+1. The model preserves supplied Markdown or applies the formatting guide while
+   authoring new Markdown.
+2. The Python launcher passes that Markdown unchanged to bundled
+   `md2docx-core`.
+3. Chrome uses the WASM build, while clipboard and Skill One use native builds
+   of that same Rust source.
+4. The launcher self-tests the compiler, preflights Markdown, validates feature
+   coverage and OOXML, and recompiles deterministically before returning a DOCX.
+5. The agent renders the exact DOCX to PDF, rasterizes every page, inspects all
+   page images, and records hashes, counts, issues, and rebuilds.
+6. `visual_gate.py` rejects an incomplete or mismatched visual receipt.
 
-## Delivery stages
-
-- [x] Establish an organized `products/` and `shared/` repository layout.
-- [x] Initialize a standards-compliant installable skill package.
-- [x] Define the DocSpec contract and deterministic workflow.
-- [x] Implement every supported block and inline structure.
-- [x] Implement structural OOXML self-validation and JSON reports.
-- [x] Add cross-provider adapters and representative fixtures.
-- [x] Add byte-determinism, RTL, math, table, and corruption tests.
-- [x] Package the skill as an uploadable ZIP after all gates pass.
+There is no Skill-One-specific DOCX compiler or intermediate translation
+format.
 
 ## Acceptance gates
 
-- Dependency-free Python 3 runtime.
-- Deterministic DOCX bytes for identical input.
-- Valid ZIP and XML package with all required relationships.
-- Hebrew and Arabic runs receive native Word RTL properties.
-- Mixed RTL/LTR boundaries use Word-stable spacing.
-- Supported LaTeX becomes native OMML with no raw command leakage.
-- RTL tables retain logical source order and use Word visual RTL behavior.
-- Every table cell is horizontally and vertically centered.
-- Build fails rather than returning a document that fails validation.
+- Identical Markdown and source profile produce identical native-core DOCX
+  bytes.
+- Windows and Linux x64 native cores are bundled for local/provider execution.
+- RTL/BiDi, tables, Markdown, equations, and styles are owned by the shared
+  compiler and covered by its conformance suite.
+- The launcher rejects corrupt XML, em dashes, and Unicode BiDi controls.
+- The launcher rejects malformed input, wrong expected input hashes, skipped
+  features, tampered packages, and output that differs from trusted replay.
+- A deliverable requires matching DOCX/PDF hashes, one image per expected page,
+  review of every page number, no unresolved issues, and `visual_valid: true`.
