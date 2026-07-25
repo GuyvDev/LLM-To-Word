@@ -3,9 +3,10 @@ FROM python:3.12.11-slim@sha256:27f90d79cc85e9b7b2560063ef44fa0e9eaae7a7c3f5a9f7
 WORKDIR /skill-one
 COPY products/skill-one/skill-one/ ./skill-one/
 
-RUN python -m py_compile skill-one/scripts/docx_brain.py \
+RUN python -m py_compile skill-one/scripts/docx_brain.py skill-one/scripts/visual_gate.py \
+    && chmod +x skill-one/bin/md2docx-core-linux-x64 \
     && python skill-one/scripts/docx_brain.py build \
-       skill-one/assets/example-docspec.json /tmp/example.docx --report /tmp/report.json \
+       skill-one/assets/example.md /tmp/example.docx --source llm --report /tmp/report.json \
     && python skill-one/scripts/docx_brain.py validate /tmp/example.docx --json
 
-CMD ["python", "skill-one/scripts/docx_brain.py", "build", "skill-one/assets/example-docspec.json", "/tmp/example.docx", "--report", "/tmp/report.json"]
+CMD ["python", "skill-one/scripts/docx_brain.py", "build", "skill-one/assets/example.md", "/tmp/example.docx", "--source", "llm", "--report", "/tmp/report.json"]

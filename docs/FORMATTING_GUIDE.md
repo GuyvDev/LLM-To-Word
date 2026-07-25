@@ -1,8 +1,8 @@
 # Markdown formatting guide
 
-This guide describes the canonical Rust converter used by the Chrome
-extension, clipboard helper, and Word add-in. Skill One uses the stricter
-[DocSpec contract](../products/skill-one/skill-one/references/docspec.md).
+This guide describes the canonical Rust converter used by all four products.
+Skill One uses the same Markdown input contract and adds machine validation,
+extracted-text review, and a mandatory all-page visual release gate.
 
 ## Default Word theme
 
@@ -179,3 +179,7 @@ DOCX is the primary output. For automated visual review:
 Never capture the desktop or an application window. A human release tester
 must separately open the DOCX in Microsoft Word because LibreOffice and Word
 can differ in OMML and BiDi layout.
+
+Skill One additionally requires every rendered PDF page to be inspected and a
+passing `visual-report.json` to be checked with its bundled
+`scripts/visual_gate.py`.

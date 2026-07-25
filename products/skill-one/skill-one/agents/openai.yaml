@@ -1,4 +1,16 @@
 interface:
-  display_name: "Skill One"
-  short_description: "Create validated, professional Word documents"
-  default_prompt: "Use $skill-one to create and validate a polished DOCX from my content."
+  display_name: Skill One
+  short_description: Create Word documents with mandatory all-page visual QA
+  default_prompt: Use $skill-one to preserve or author my Markdown, run the bundled
+    hardened build and review workflow, inspect the extracted text, and return the
+    validated DOCX only after rendering every page, inspecting all pages, and passing
+    the visual gate.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true
