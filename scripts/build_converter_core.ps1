@@ -51,7 +51,23 @@ try {
     $SkillBin = Join-Path $Root "products\skill-one\skill-one\bin"
     New-Item -ItemType Directory -Path $SkillBin -Force | Out-Null
     if (-not $PreserveSkillRuntime) {
-        Copy-Item -LiteralPath $NativeCore -Destination (Join-Path $SkillBin "md2docx-core.exe") -Force
+        $SkillRuntime = Join-Path $SkillBin "md2docx-core.exe"
+        Copy-Item -LiteralPath $NativeCore -Destination $SkillRuntime -Force
+        $ManifestPath = Join-Path $Root "products\skill-one\skill-one\assets\runtime-manifest.json"
+        $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+        $WindowsHash = (Get-FileHash -LiteralPath $SkillRuntime -Algorithm SHA256).Hash.ToLowerInvariant()
+        $LinuxHash = $Manifest.binaries.'bin/md2docx-core-linux-x64'
+        $ManifestJson = (@(
+            "{",
+            '  "schema_version": 1,',
+            '  "engine": "md2docx-core",',
+            '  "binaries": {',
+            ('    "bin/md2docx-core.exe": "' + $WindowsHash + '",'),
+            ('    "bin/md2docx-core-linux-x64": "' + $LinuxHash + '"'),
+            "  }",
+            "}"
+        ) -join [Environment]::NewLine) + [Environment]::NewLine
+        [IO.File]::WriteAllText($ManifestPath, $ManifestJson, [Text.UTF8Encoding]::new($false))
     }
     Write-Host "Built canonical core:"
     Write-Host "  products\chrome-extension\core\md2docx_core.js"

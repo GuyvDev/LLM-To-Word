@@ -3,7 +3,10 @@
 .env
 __pycache__/
 *.py[cod]
-tests/
+tests/*
+!tests/visual/
+tests/visual/*
+!tests/visual/expected-sha256.json
 _debug_pdf_pages/
 audit-output/
 result.docx

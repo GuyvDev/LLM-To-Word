@@ -2,7 +2,7 @@
   "schema_version": 1,
   "engine": "md2docx-core",
   "binaries": {
-    "bin/md2docx-core.exe": "83676bfa8ecf48633a7167be66a77d56333b73ff7f6767259686acb82bccb316",
-    "bin/md2docx-core-linux-x64": "4e589f34c76c759ab47bad21073d8e2927a7223291b97b4c0ba0e84d5c814810"
+    "bin/md2docx-core.exe": "7f7c8938d68cf40d4f853b94f7da2974ea4ce0f0b81eef6681905e47608e72b1",
+    "bin/md2docx-core-linux-x64": "3e3a444f3f44996bd6fc44bad94c181ae8cb0db4b1dc59f1a925fe8d98f83eea"
   }
 }

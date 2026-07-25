@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param([switch]$SkipManifestCheck)
+param(
+    [switch]$SkipManifestCheck,
+    [switch]$UpdateManifest
+)
 
 $ErrorActionPreference = "Stop"
 $Root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
@@ -29,8 +32,21 @@ try {
     }
     Copy-Item -LiteralPath (Join-Path $Export "md2docx-core-linux-x64") -Destination $Output -Force
     $Actual = (Get-FileHash -LiteralPath $Output -Algorithm SHA256).Hash.ToLowerInvariant()
-    if (-not $SkipManifestCheck) {
-        $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+    $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+    if ($UpdateManifest) {
+        $WindowsHash = $Manifest.binaries.'bin/md2docx-core.exe'
+        $ManifestJson = (@(
+            "{",
+            '  "schema_version": 1,',
+            '  "engine": "md2docx-core",',
+            '  "binaries": {',
+            ('    "bin/md2docx-core.exe": "' + $WindowsHash + '",'),
+            ('    "bin/md2docx-core-linux-x64": "' + $Actual + '"'),
+            "  }",
+            "}"
+        ) -join [Environment]::NewLine) + [Environment]::NewLine
+        [IO.File]::WriteAllText($ManifestPath, $ManifestJson, [Text.UTF8Encoding]::new($false))
+    } elseif (-not $SkipManifestCheck) {
         $Expected = $Manifest.binaries.'bin/md2docx-core-linux-x64'
         if ($Actual -ne $Expected) {
             throw "Linux runtime hash differs from runtime-manifest.json. Expected=$Expected Actual=$Actual"

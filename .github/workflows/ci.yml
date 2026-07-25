@@ -28,7 +28,7 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - name: Validate and package Skill One
         run: |
-          python -m py_compile products/skill-one/skill-one/scripts/docx_brain.py products/skill-one/skill-one/scripts/visual_gate.py scripts/generate_readme_examples.py
+          python -m py_compile products/skill-one/skill-one/scripts/docx_brain.py products/skill-one/skill-one/scripts/visual_gate.py scripts/generate_readme_examples.py scripts/validate_visual_regression.py
           python products/skill-one/package_skill.py --output "$RUNNER_TEMP/skill-one.zip"
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
@@ -66,6 +66,24 @@ jobs:
         run: |
           docker build -f products/skill-one/Dockerfile.test --tag skill-one:${{ github.sha }} .
           docker run --rm skill-one:${{ github.sha }}
+      - name: Build pinned visual-regression renderer
+        run: docker build -f tests/visual/Dockerfile --tag md2docx-visual:${{ github.sha }} .
+      - name: Enforce exact DOCX-to-PDF-to-PNG output
+        run: |
+          mkdir -p "$RUNNER_TEMP/visual-regression"
+          docker run --rm \
+            -v "$RUNNER_TEMP/visual-regression:/visual-output" \
+            md2docx-visual:${{ github.sha }} \
+            --output /visual-output
+      - name: Upload visual evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-regression-${{ github.sha }}
+          path: ${{ runner.temp }}/visual-regression/
+          if-no-files-found: ignore
+          retention-days: 7
+
   windows-release-packages:
     runs-on: windows-latest
     steps:

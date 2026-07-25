@@ -1,0 +1,22 @@
+{
+  "images": {
+    "01-mixed-bidi-after.png": {
+      "bytes": 133991,
+      "sha256": "5cedf31ca1305a1da0c55e7a867e008377a763c5a112e792abec06084862267c"
+    },
+    "02-math-symbols-after.png": {
+      "bytes": 91762,
+      "sha256": "df78f07b1abb58c3008816a3f59d8ff1c9369c3bd7e37f7732bd5c33e7e0dca6"
+    },
+    "03-rtl-table-after.png": {
+      "bytes": 133976,
+      "sha256": "823cd9cb26e72c9c2c25f36d835f3e4df7e15aed744ce901c5ee2f9304dd7880"
+    },
+    "04-document-styles-after.png": {
+      "bytes": 159643,
+      "sha256": "6995b895d02c69f9560f5bdfdfe5dd097504ed86320f6397993ed663ac59fda8"
+    }
+  },
+  "renderer": "tests/visual/Dockerfile",
+  "schema": 1
+}
