@@ -11,9 +11,11 @@ not summarize, improve, restructure, rename headings, replace punctuation, or
 drop sections before compilation. A provider-generated rewrite is a different
 document even if it uses the same compiler.
 
-For a ChatGPT custom GPT, enable Code Interpreter, upload the complete Skill One
-ZIP, extract it under `/mnt/data`, and execute the bundled launcher. For Claude,
-install or upload the same complete skill directory and enable file execution.
+For ChatGPT web, install the complete Skill One ZIP through
+**Plugins -> Skills -> Create -> Upload from computer**. For Claude web, enable
+code execution, open **Customize -> Skills**, and upload the same complete ZIP.
+Both providers must execute the bundled launcher rather than recreating its
+behavior.
 
 Always request `--review-text extracted.txt`, then read the extracted text and
 compare its headings, sections, values, table cells, and reading order with the
@@ -25,7 +27,6 @@ DOCX existence, or the weaker `validate` command alone. Identical Markdown
 bytes and the same `--source` profile produce the same DOCX bytes across the
 Windows and Linux runtimes and the other products using that profile.
 
-For a ChatGPT custom GPT, put the mandatory build command and nine acceptance
-checks directly in the GPT Instructions. Keep the complete ZIP available to
-Code Interpreter. The model may author `input.md`, but it must not implement,
-patch, or replace the build and verification logic.
+The installed skill already contains the mandatory build command and nine
+acceptance checks. The model may author `input.md`, but it must not implement,
+patch, omit, or replace the build and verification logic.

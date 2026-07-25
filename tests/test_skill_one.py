@@ -697,7 +697,7 @@ $$fake_math$$
                 PACKAGER.package(package)
             with zipfile.ZipFile(package) as archive:
                 archive.extractall(extracted)
-            binary = extracted / "skill-one" / "bin" / "md2docx-core.exe"
+            binary = extracted / "skill-one" / "bin" / core.name
             binary.write_bytes(binary.read_bytes() + b"tampered")
             brain = (
                 extracted
